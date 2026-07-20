@@ -30,7 +30,7 @@ async function main() {
   const manager = await prisma.employee.create({
     data: {
       branchId: branchA.id,
-      name: "خالد المدير العام",
+      name: "CEO",
       role: "manager",
       pinCode: hashPin("9999"),
     },
