@@ -1,0 +1,267 @@
+// CarWash Ops Engine (COE) - Database Schema
+// Note: provider is "sqlite" for zero-setup local development.
+// Prisma enums are not supported on SQLite, so enum-like columns are
+// modelled as String and validated at the application layer (see
+// src/validators). Swapping datasource provider to "postgresql" and
+// converting the relevant String fields to native `enum` blocks is a
+// safe, isolated change for production deployments.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// 1. الفروع
+// ---------------------------------------------------------------------------
+model Branch {
+  id        Int      @id @default(autoincrement()) @map("branch_id")
+  name      String
+  status    String   @default("closed") // open | closed | maintenance
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bays               Bay[]
+  employees          Employee[]
+  jobOrders          JobOrder[]
+  shiftInventoryReports ShiftInventoryReport[]
+  maintenanceIncidents  MaintenanceIncident[]
+  cleanlinessChecks     CleanlinessCheck[]
+  maintenanceSchedules  MaintenanceSchedule[]
+
+  @@map("branches")
+}
+
+// ---------------------------------------------------------------------------
+// 2. المواقف (Bays)
+// ---------------------------------------------------------------------------
+model Bay {
+  id       Int    @id @default(autoincrement()) @map("bay_id")
+  branchId Int    @map("branch_id")
+  bayName  String @map("bay_name")
+  bayType  String? @map("bay_type") // normal | vip ...
+
+  branch      Branch               @relation(fields: [branchId], references: [id])
+  assignments BayCrewAssignment[]
+  jobOrders   JobOrder[]
+
+  @@map("bays")
+}
+
+// ---------------------------------------------------------------------------
+// 3. الموظفون
+// ---------------------------------------------------------------------------
+model Employee {
+  id       Int     @id @default(autoincrement()) @map("employee_id")
+  branchId Int     @map("branch_id")
+  name     String
+  role     String // manager | supervisor | washer | detailer
+  pinCode  String  @map("pin_code") // hashed 4-digit PIN
+  isActive Boolean @default(true) @map("is_active")
+
+  branch                Branch                 @relation(fields: [branchId], references: [id])
+  bayAssignments        BayCrewAssignment[]
+  inspectedQualityLogs  QualityLog[]           @relation("Inspector")
+  shiftInventoryReports ShiftInventoryReport[]
+
+  @@map("employees")
+}
+
+// ---------------------------------------------------------------------------
+// 4. ربط عمال المواقف بالورديات
+// ---------------------------------------------------------------------------
+model BayCrewAssignment {
+  id         Int      @id @default(autoincrement()) @map("assignment_id")
+  bayId      Int      @map("bay_id")
+  employeeId Int      @map("employee_id")
+  shiftDate  DateTime @map("shift_date")
+
+  bay      Bay      @relation(fields: [bayId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("bay_crew_assignments")
+}
+
+// ---------------------------------------------------------------------------
+// 5. الخدمات وقواعد البيع الإضافي
+// ---------------------------------------------------------------------------
+model Service {
+  id               Int     @id @default(autoincrement()) @map("service_id")
+  serviceName      String  @map("service_name")
+  basePrice        Float   @map("base_price")
+  suggestedTrigger String? @map("suggested_trigger") // e.g. car_type=large
+
+  upsellingLogs UpsellingLog[]
+
+  @@map("services")
+}
+
+// ---------------------------------------------------------------------------
+// 6. تذاكر غسيل السيارات
+// ---------------------------------------------------------------------------
+model JobOrder {
+  id             Int      @id @default(autoincrement()) @map("job_id")
+  branchId       Int      @map("branch_id")
+  bayId          Int?     @map("bay_id")
+  posInvoiceNo   String?  @map("pos_invoice_no")
+  plateNumber    String   @map("plate_number")
+  customerPhone  String?  @map("customer_phone")
+  carType        String?  @map("car_type") // small | medium | large
+  status         String   @default("queued") // queued|washing|quality_check|ready|delivered
+  isHighlyDirty  Boolean  @default(false) @map("is_highly_dirty")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  clientUuid     String?  @map("client_uuid") // idempotency key from offline tablet sync
+
+  branch           Branch             @relation(fields: [branchId], references: [id])
+  bay              Bay?               @relation(fields: [bayId], references: [id])
+  qualityLogs      QualityLog[]
+  upsellingLogs    UpsellingLog[]
+  customerFeedback CustomerFeedback[]
+
+  @@map("job_orders")
+  @@index([branchId, status])
+}
+
+// ---------------------------------------------------------------------------
+// 7. فحص الجودة
+// ---------------------------------------------------------------------------
+model QualityLog {
+  id                Int      @id @default(autoincrement()) @map("quality_id")
+  jobId             Int      @map("job_id")
+  stage             String   // pre_wash_photos | post_wash_checklist
+  scratchesNotes    String?  @map("scratches_notes")
+  photosJson        String?  @map("photos_json") // JSON array of {url, takenAt, watermark}
+  checklistResults  String?  @map("checklist_results") // JSON {exterior,interior,tires,finishing}
+  touchUpNeeded     Boolean  @default(false) @map("touch_up_needed")
+  touchUpAt         DateTime? @map("touch_up_at")
+  inspectorId       Int?     @map("inspector_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  job       JobOrder  @relation(fields: [jobId], references: [id])
+  inspector Employee? @relation("Inspector", fields: [inspectorId], references: [id])
+
+  @@map("quality_logs")
+}
+
+// ---------------------------------------------------------------------------
+// 8. سجلات التسويق والبيع الإضافي
+// ---------------------------------------------------------------------------
+model UpsellingLog {
+  id               Int      @id @default(autoincrement()) @map("upsell_id")
+  jobId            Int      @map("job_id")
+  serviceId        Int      @map("service_id")
+  status           String   // accepted | rejected
+  rejectionReason  String?  @map("rejection_reason") // too_expensive|in_a_hurry|old_car|loyalty_program
+  extraInvoiceNo   String?  @map("extra_invoice_no")
+  bonusAmount      Float    @default(0) @map("bonus_amount")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  job     JobOrder @relation(fields: [jobId], references: [id])
+  service Service  @relation(fields: [serviceId], references: [id])
+
+  @@map("upselling_logs")
+}
+
+// ---------------------------------------------------------------------------
+// 9. التقييمات الصوتية ورضا العملاء
+// ---------------------------------------------------------------------------
+model CustomerFeedback {
+  id                 Int      @id @default(autoincrement()) @map("feedback_id")
+  jobId              Int      @map("job_id")
+  voiceRecUrl        String?  @map("voice_rec_url")
+  isCustomerFurious  Boolean  @default(false) @map("is_customer_furious")
+  alertAcknowledged  Boolean  @default(false) @map("alert_acknowledged")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  job JobOrder @relation(fields: [jobId], references: [id])
+
+  @@map("customer_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// 10. جرد المخزون والمناشف (إغلاق الوردية)
+// ---------------------------------------------------------------------------
+model ShiftInventoryReport {
+  id                     Int      @id @default(autoincrement()) @map("report_id")
+  branchId               Int      @map("branch_id")
+  supervisorId           Int      @map("supervisor_id")
+  shiftDate              DateTime @map("shift_date")
+  chemicalsRemainingJson String?  @map("chemicals_remaining_json") // JSON {product: liters}
+  towelsReceivedStart    Int      @map("towels_received_start")
+  towelsCollectedEnd     Int      @map("towels_collected_end")
+  storageRoomPhotosJson  String?  @map("storage_room_photos_json")
+  yardPhotosJson         String?  @map("yard_photos_json")
+  upsellTargetPct        Float?   @map("upsell_target_pct")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  supervisor Employee @relation(fields: [supervisorId], references: [id])
+
+  @@map("shift_inventory_reports")
+}
+
+// ---------------------------------------------------------------------------
+// جولة النظافة الإلزامية (كل 4 ساعات) - Phase 1
+// ---------------------------------------------------------------------------
+model CleanlinessCheck {
+  id           Int      @id @default(autoincrement()) @map("check_id")
+  branchId     Int      @map("branch_id")
+  supervisorId Int      @map("supervisor_id")
+  photosJson   String?  @map("photos_json")
+  dueAt        DateTime @map("due_at")
+  completedAt  DateTime? @map("completed_at")
+  wasLocked    Boolean  @default(false) @map("was_locked")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("cleanliness_checks")
+}
+
+// ---------------------------------------------------------------------------
+// جدول الصيانة الوقائية الدورية (Preventive Maintenance) - امتداد المرحلة الثالثة
+// ---------------------------------------------------------------------------
+model MaintenanceSchedule {
+  id              Int       @id @default(autoincrement()) @map("schedule_id")
+  branchId        Int       @map("branch_id")
+  equipmentName   String    @map("equipment_name") // e.g. "مضخة ضغط عالي - موقف 1"
+  intervalDays    Int       @map("interval_days") // كل كم يوم تلزم الصيانة
+  notes           String?
+  lastPerformedAt DateTime? @map("last_performed_at")
+  nextDueAt       DateTime  @map("next_due_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("maintenance_schedules")
+  @@index([branchId, nextDueAt])
+}
+
+// ---------------------------------------------------------------------------
+// 11. الصيانة والأعطال والحوادث
+// ---------------------------------------------------------------------------
+model MaintenanceIncident {
+  id                Int      @id @default(autoincrement()) @map("incident_id")
+  branchId          Int      @map("branch_id")
+  reportedById      Int?     @map("reported_by_id")
+  type              String   // equipment_breakdown | customer_car_damage
+  description       String
+  severity          String?  // critical_stop | partial_slow
+  photosJson        String?  @map("photos_json")
+  compensationPaid  Float    @default(0) @map("compensation_paid")
+  proposedDeduction Float    @default(0) @map("proposed_deduction")
+  repairCost        Float    @default(0) @map("repair_cost")
+  status            String   @default("pending_approval") // pending_approval|approved|rejected
+  resolvedAt        DateTime? @map("resolved_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("maintenance_and_incidents")
+}

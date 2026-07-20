@@ -1,0 +1,25 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.log
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# Local editor state / old backup archives / unrelated personal files — not part of the project source
+.cursor/
+*.zip
+*.zip.bz2
+مشاريعي/
+
+# Backend runtime data (SQLite DB + uploaded files) — never commit real data
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Secrets — commit only the .env.example templates
+backend/.env
+tablet-app/.env.local
+web-dashboard/.env.local
