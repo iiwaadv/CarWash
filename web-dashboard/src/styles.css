@@ -1,16 +1,26 @@
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap");
+
 :root {
-  --bg: #f5f7fb;
+  /* لوحة الألوان: أبيض / أصفر (ذهبي هادئ) / أسود دافئ — بطابع كلاسيك مريح للعين */
+  --bg: #faf7ef;
   --surface: #ffffff;
-  --border: #e3e8f0;
-  --text: #101828;
-  --muted: #667085;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --warning: #d97706;
-  --radius: 14px;
-  font-family: "Tahoma", "Segoe UI", system-ui, sans-serif;
+  --surface-alt: #fff6dd;
+  --border: #e7dfcb;
+  --text: #221c13;
+  --muted: #79705f;
+  --primary: #c79a2e;
+  --primary-dark: #a87f1f;
+  --on-primary: #221c13;
+  --success: #3f7d4a;
+  --danger: #b23a2e;
+  --warning: #b8860b;
+  --dark: #1c1712;
+  --dark-elev: #262019;
+  --dark-border: #3a2f22;
+  --dark-text: #f3eee2;
+  --dark-muted: #b8ad98;
+  --radius: 12px;
+  font-family: "Tajawal", "Segoe UI", Tahoma, system-ui, sans-serif;
 }
 
 * {
@@ -37,7 +47,17 @@ button {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  background: var(--bg);
+}
+.login-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  border-radius: 20px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(34, 28, 19, 0.12);
 }
 .login-card {
   background: var(--surface);
@@ -46,7 +66,7 @@ button {
   padding: 40px;
   width: 380px;
   text-align: center;
-  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.08);
+  box-shadow: 0 12px 40px rgba(34, 28, 19, 0.08);
 }
 .login-card input {
   width: 100%;
@@ -62,12 +82,13 @@ button {
 .app-shell {
   display: flex;
   height: 100vh;
+  background: var(--bg);
 }
 
 .sidebar {
-  width: 220px;
-  background: #0f172a;
-  color: #e2e8f0;
+  width: 230px;
+  background: var(--dark);
+  color: var(--dark-text);
   display: flex;
   flex-direction: column;
   padding: 20px 0;
@@ -76,8 +97,8 @@ button {
 .sidebar .brand {
   padding: 0 20px 20px;
   font-weight: 800;
-  font-size: 18px;
-  border-bottom: 1px solid #1e293b;
+  font-size: 17px;
+  border-bottom: 1px solid var(--dark-border);
   margin-bottom: 12px;
 }
 .nav-item {
@@ -85,22 +106,74 @@ button {
   text-align: right;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--dark-muted);
   font-size: 15px;
   font-weight: 600;
 }
 .nav-item.active {
-  background: rgba(37, 99, 235, 0.2);
-  color: #ffffff;
+  background: rgba(199, 154, 46, 0.16);
+  color: var(--dark-text);
   border-right: 3px solid var(--primary);
 }
 .sidebar .logout {
   margin-top: auto;
   padding: 14px 20px;
   text-align: right;
-  color: #f87171;
+  color: #d98c7a;
   background: none;
   border: none;
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dashboard-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dashboard-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ejaz-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.dashboard-topbar .greeting {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+.user-chip .user-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.user-chip .user-role {
+  font-size: 12px;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+  padding-right: 8px;
 }
 
 .main-content {
@@ -179,7 +252,7 @@ button {
   border-bottom: 1px solid var(--border);
 }
 .branch-card .alert-badge {
-  background: rgba(220, 38, 38, 0.1);
+  background: rgba(178, 58, 46, 0.1);
   color: var(--danger);
   padding: 4px 10px;
   border-radius: 999px;
@@ -228,18 +301,21 @@ button {
   padding: 10px 18px;
   font-weight: 700;
   font-size: 14px;
-  color: white;
+  color: var(--on-primary);
   background: var(--primary);
 }
 .btn.success {
   background: var(--success);
+  color: white;
 }
 .btn.danger {
   background: var(--danger);
+  color: white;
 }
 .btn.secondary {
-  background: #eef2f7;
+  background: var(--surface-alt);
   color: var(--text);
+  border: 1px solid var(--border);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -268,11 +344,11 @@ th {
   font-weight: 700;
 }
 .pill.active {
-  background: rgba(22, 163, 74, 0.12);
+  background: rgba(63, 125, 74, 0.12);
   color: var(--success);
 }
 .pill.inactive {
-  background: rgba(220, 38, 38, 0.1);
+  background: rgba(178, 58, 46, 0.1);
   color: var(--danger);
 }
 
@@ -298,7 +374,7 @@ th {
   border-bottom: 1px solid var(--border);
 }
 .feedback-item.furious {
-  background: rgba(220, 38, 38, 0.04);
+  background: rgba(178, 58, 46, 0.05);
 }
 .empty-state {
   color: var(--muted);

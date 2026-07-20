@@ -5,13 +5,16 @@ import { hashPin } from "../src/utils/pin";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding CarWash Ops Engine demo data...");
+  console.log("🌱 Seeding نظام إدارة مغاسل إيجاز demo data...");
 
   const branchA = await prisma.branch.create({
-    data: { name: "فرع الرياض - العليا", status: "open" },
+    data: { name: "فرع البلدية", status: "open" },
   });
   const branchB = await prisma.branch.create({
-    data: { name: "فرع جدة - الروضة", status: "open" },
+    data: { name: "فرع المحمدية", status: "open" },
+  });
+  const branchC = await prisma.branch.create({
+    data: { name: "فرع الفيصلية", status: "open" },
   });
 
   const [bayA1, bayA2, bayA3] = await Promise.all([
@@ -38,6 +41,9 @@ async function main() {
   });
   const supervisorB = await prisma.employee.create({
     data: { branchId: branchB.id, name: "منى المشرفة", role: "supervisor", pinCode: hashPin("4321") },
+  });
+  const supervisorC = await prisma.employee.create({
+    data: { branchId: branchC.id, name: "ياسر المشرف", role: "supervisor", pinCode: hashPin("5678") },
   });
 
   const washer1 = await prisma.employee.create({
@@ -141,8 +147,9 @@ async function main() {
   console.log("✅ Seed complete.");
   console.log("   PIN تسجيل الدخول:");
   console.log(`   - مدير عام: فرع #${branchA.id} / PIN 9999`);
-  console.log(`   - مشرف فرع الرياض: فرع #${branchA.id} / PIN 1234`);
-  console.log(`   - مشرف فرع جدة: فرع #${branchB.id} / PIN 4321`);
+  console.log(`   - مشرف فرع البلدية: فرع #${branchA.id} / PIN 1234`);
+  console.log(`   - مشرف فرع المحمدية: فرع #${branchB.id} / PIN 4321`);
+  console.log(`   - مشرف فرع الفيصلية: فرع #${branchC.id} / PIN 5678`);
 }
 
 main()

@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSync } from "../context/SyncContext";
 import { apiFetch } from "../lib/api";
 import { db } from "../lib/db";
+import { getGreeting } from "../lib/greeting";
 import { queueJobPatch } from "../lib/sync";
 
 interface Job {
@@ -82,8 +83,13 @@ export default function LiveYard() {
     setJobs((prev) => prev.filter((j) => j.id !== job.id));
   }
 
+  const remaining = active.filter((j) => j.status !== "delivered").length;
+
   return (
     <div className="page" style={{ padding: 0, display: "flex", flexDirection: "column" }}>
+      <div className="yard-summary">
+        {getGreeting()} — {employee?.name}، متبقي {remaining} {remaining === 1 ? "سيارة" : "سيارات"} لإكمال جدول اليوم 🚗
+      </div>
       <div className="yard-board">
         {columns.map((col) => (
           <div className="yard-column" key={col.key}>

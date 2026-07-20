@@ -1,18 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap");
+
 :root {
-  --bg: #0f172a;
-  --bg-elev: #17203a;
-  --card: #1c2743;
-  --border: #2b3757;
-  --text: #f1f5f9;
-  --muted: #93a1c2;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --warning: #f59e0b;
-  --touchup: #3b82f6;
-  --radius: 16px;
-  font-family: "Tahoma", "Segoe UI", system-ui, sans-serif;
+  /* لوحة الألوان: أبيض / أصفر (ذهبي هادئ) / أسود دافئ — بطابع كلاسيك مريح للعين */
+  --bg: #faf7ef;
+  --bg-elev: #ffffff;
+  --card: #ffffff;
+  --surface-alt: #fff6dd;
+  --border: #e7dfcb;
+  --text: #221c13;
+  --muted: #79705f;
+  --primary: #c79a2e;
+  --primary-dark: #a87f1f;
+  --on-primary: #221c13;
+  --success: #3f7d4a;
+  --danger: #b23a2e;
+  --warning: #b8860b;
+  --touchup: #a87f1f;
+  --dark: #1c1712;
+  --dark-elev: #262019;
+  --dark-border: #3a2f22;
+  --dark-text: #f3eee2;
+  --dark-muted: #b8ad98;
+  --radius: 14px;
+  font-family: "Tajawal", "Segoe UI", Tahoma, system-ui, sans-serif;
 }
 
 * {
@@ -51,19 +61,30 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--bg-elev);
-  border-bottom: 1px solid var(--border);
+  background: var(--dark);
+  color: var(--dark-text);
+  border-bottom: 1px solid var(--dark-border);
   flex-shrink: 0;
+}
+
+.topbar-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  padding: 3px;
 }
 
 .topbar .brand {
   font-size: 20px;
   font-weight: 800;
+  color: var(--dark-text);
 }
 
 .topbar .who {
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 13px;
+  color: var(--dark-muted);
 }
 
 .sync-pill {
@@ -73,8 +94,9 @@ button {
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--dark-elev);
+  border: 1px solid var(--dark-border);
+  color: var(--dark-text);
 }
 
 .sync-dot {
@@ -96,7 +118,7 @@ button {
   padding: 18px 24px;
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: var(--on-primary);
   background: var(--primary);
   transition: transform 0.08s ease;
   min-height: 64px;
@@ -111,13 +133,15 @@ button {
 }
 .big-btn.success {
   background: var(--success);
+  color: white;
 }
 .big-btn.danger {
   background: var(--danger);
+  color: white;
 }
 .big-btn.warning {
   background: var(--warning);
-  color: #111827;
+  color: #ffffff;
 }
 .big-btn:disabled {
   opacity: 0.5;
@@ -129,8 +153,18 @@ button {
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 24px;
+  gap: 20px;
   padding: 20px;
+  background: var(--bg);
+}
+.login-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  border-radius: 20px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(34, 28, 19, 0.12);
 }
 
 .pin-dots {
@@ -184,7 +218,16 @@ button {
 }
 .branch-chip.active {
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(199, 154, 46, 0.16);
+}
+
+.yard-summary {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-alt, #fff6dd);
+  border-bottom: 1px solid var(--border);
 }
 
 .yard-board {
@@ -252,15 +295,15 @@ button {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(34, 28, 19, 0.06);
 }
 .badge.dirty {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(184, 134, 11, 0.16);
   color: var(--warning);
 }
 .badge.pending-sync {
-  background: rgba(220, 38, 38, 0.2);
-  color: #fca5a5;
+  background: rgba(178, 58, 46, 0.16);
+  color: var(--danger);
 }
 
 .fab {
@@ -271,10 +314,10 @@ button {
   height: 72px;
   border-radius: 50%;
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
   font-size: 32px;
   border: none;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+  box-shadow: 0 8px 24px rgba(199, 154, 46, 0.5);
   z-index: 20;
 }
 
@@ -341,7 +384,7 @@ button {
 }
 .chip-btn.active {
   border-color: var(--primary);
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(199, 154, 46, 0.2);
 }
 
 .photo-grid {
@@ -402,16 +445,16 @@ button {
 }
 .checklist-item.ok {
   border-color: var(--success);
-  background: rgba(22, 163, 74, 0.18);
+  background: rgba(63, 125, 74, 0.14);
 }
 .checklist-item.issue {
   border-color: var(--danger);
-  background: rgba(220, 38, 38, 0.18);
+  background: rgba(178, 58, 46, 0.14);
 }
 .checklist-item.corrected {
   border-color: var(--touchup);
-  background: rgba(59, 130, 246, 0.25);
-  color: #bfdbfe;
+  background: rgba(168, 127, 31, 0.16);
+  color: var(--text);
 }
 .checklist-item small {
   display: block;
@@ -432,7 +475,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  box-shadow: 0 0 0 0 rgba(178, 58, 46, 0.5);
   animation: none;
 }
 .mic-button.recording {
@@ -440,13 +483,13 @@ button {
 }
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55);
+    box-shadow: 0 0 0 0 rgba(178, 58, 46, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 24px rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 24px rgba(178, 58, 46, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 0 rgba(178, 58, 46, 0);
   }
 }
 
@@ -460,7 +503,8 @@ button {
 .overlay-lock {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.97);
+  background: rgba(28, 23, 18, 0.97);
+  color: var(--dark-text);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -509,15 +553,15 @@ button {
 }
 .toast.error {
   border-color: var(--danger);
-  color: #fca5a5;
+  color: var(--danger);
 }
 .toast.success {
   border-color: var(--success);
-  color: #86efac;
+  color: var(--success);
 }
 
 .error-text {
-  color: #fca5a5;
+  color: var(--danger);
   font-size: 14px;
   margin-top: -8px;
   margin-bottom: 12px;

@@ -22,10 +22,11 @@ export default function Login() {
 
   return (
     <div className="login-screen">
-      <div style={{ fontSize: 28, fontWeight: 800 }}>👑 CarWash Ops Engine</div>
+      <img src="/ejaz-logo.png" alt="إيجاز" className="login-logo" />
+      <div style={{ fontSize: 26, fontWeight: 800 }}>🚗 نظام إدارة مغاسل إيجاز</div>
       <div className="login-card">
         <div style={{ fontWeight: 700, marginBottom: 4 }}>لوحة تحكم المدير العام</div>
-        <div style={{ color: "var(--muted)", fontSize: 13 }}>أدخل رمزك السري (PIN) المكوّن من 4 أرقام</div>
+        <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 6 }}>مرحباً بك، يرجى تسجيل الدخول للمتابعة</div>
         <form onSubmit={submit}>
           <input
             value={pin}

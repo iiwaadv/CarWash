@@ -1,4 +1,4 @@
-// CarWash Ops Engine (COE) - Database Schema
+// نظام إدارة مغاسل إيجاز (Ejaz Car Wash Ops) - Database Schema
 // Note: provider is "sqlite" for zero-setup local development.
 // Prisma enums are not supported on SQLite, so enum-like columns are
 // modelled as String and validated at the application layer (see
@@ -22,6 +22,7 @@ model Branch {
   id        Int      @id @default(autoincrement()) @map("branch_id")
   name      String
   status    String   @default("closed") // open | closed | maintenance
+  isActive  Boolean  @default(true) @map("is_active") // soft-delete: false = محذوف/مؤرشف
   createdAt DateTime @default(now()) @map("created_at")
 
   bays               Bay[]

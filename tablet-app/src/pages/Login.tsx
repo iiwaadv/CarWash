@@ -64,8 +64,10 @@ export default function Login() {
 
   return (
     <div className="login-screen">
-      <div style={{ fontSize: 28, fontWeight: 800 }}>🚗 CarWash Ops Engine</div>
-      <div style={{ color: "var(--muted)" }}>اختر فرعك وأدخل رمزك السري المكون من 4 أرقام</div>
+      <img src="/ejaz-logo.png" alt="إيجاز" className="login-logo" />
+      <div style={{ fontSize: 26, fontWeight: 800 }}>🚗 نظام إدارة مغاسل إيجاز</div>
+      <div style={{ color: "var(--muted)" }}>مرحباً بك، يرجى تسجيل الدخول للمتابعة</div>
+      <div style={{ color: "var(--muted)" }}>اختر الفرع ثم أدخل رمز الدخول المكون من 4 أرقام</div>
 
       <div className="branch-select">
         {branches.map((b) => (

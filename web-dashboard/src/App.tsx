@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import TopBar from "./components/TopBar";
+import Branches from "./pages/Branches";
 import Employees from "./pages/Employees";
 import FeedbackPlayer from "./pages/FeedbackPlayer";
 import Inventory from "./pages/Inventory";
@@ -15,6 +17,7 @@ const TABS = [
   { id: "feedback", label: "🎵 تقييمات العملاء", component: FeedbackPlayer },
   { id: "inventory", label: "📦 المخزون والبيع", component: Inventory },
   { id: "employees", label: "👥 الطاقم والصلاحيات", component: Employees },
+  { id: "branches", label: "🏢 الفروع", component: Branches },
 ];
 
 function Shell() {
@@ -28,7 +31,7 @@ function Shell() {
   return (
     <div className="app-shell">
       <div className="sidebar">
-        <div className="brand">🚗 COE — {manager.name}</div>
+        <div className="brand">🚗 نظام إدارة مغاسل إيجاز</div>
         {TABS.map((t) => (
           <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
             {t.label}
@@ -38,8 +41,11 @@ function Shell() {
           🚪 تسجيل خروج
         </button>
       </div>
-      <div className="main-content">
-        <Active />
+      <div className="content-area">
+        <TopBar />
+        <div className="main-content">
+          <Active />
+        </div>
       </div>
     </div>
   );

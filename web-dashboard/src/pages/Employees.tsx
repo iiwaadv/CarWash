@@ -33,6 +33,8 @@ export default function Employees() {
   const [error, setError] = useState<string | null>(null);
   const [resetPinFor, setResetPinFor] = useState<number | null>(null);
   const [newPin, setNewPin] = useState("");
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   async function load() {
     const [b, e] = await Promise.all([apiFetch("/api/branches", token), apiFetch("/api/employees", token)]);
@@ -72,6 +74,18 @@ export default function Employees() {
     await apiFetchJson(`/api/employees/${id}`, token, "PATCH", { pinCode: newPin });
     setResetPinFor(null);
     setNewPin("");
+  }
+
+  function startRename(emp: EmployeeRow) {
+    setRenamingId(emp.id);
+    setRenameValue(emp.name);
+  }
+
+  async function submitRename(id: number) {
+    if (!renameValue.trim()) return;
+    await apiFetchJson(`/api/employees/${id}`, token, "PATCH", { name: renameValue.trim() });
+    setRenamingId(null);
+    load();
   }
 
   return (
@@ -126,7 +140,26 @@ export default function Employees() {
           <tbody>
             {employees.map((emp) => (
               <tr key={emp.id}>
-                <td>{emp.name}</td>
+                <td>
+                  {renamingId === emp.id ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)" }}
+                        autoFocus
+                      />
+                      <button className="btn" onClick={() => submitRename(emp.id)}>
+                        حفظ
+                      </button>
+                      <button className="btn secondary" onClick={() => setRenamingId(null)}>
+                        إلغاء
+                      </button>
+                    </div>
+                  ) : (
+                    emp.name
+                  )}
+                </td>
                 <td>{ROLES.find((r) => r.id === emp.role)?.label ?? emp.role}</td>
                 <td>{emp.branch?.name}</td>
                 <td>
@@ -135,6 +168,11 @@ export default function Employees() {
                   </span>
                 </td>
                 <td style={{ display: "flex", gap: 6 }}>
+                  {renamingId !== emp.id && (
+                    <button className="btn secondary" onClick={() => startRename(emp)}>
+                      تعديل الاسم
+                    </button>
+                  )}
                   <button className="btn secondary" onClick={() => setResetPinFor(emp.id)}>
                     تغيير PIN
                   </button>
