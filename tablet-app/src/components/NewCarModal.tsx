@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 import { db, newClientUuid } from "../lib/db";
@@ -10,14 +11,9 @@ interface Bay {
   bayName: string;
 }
 
-const CAR_TYPES = [
-  { id: "small", label: "صغيرة" },
-  { id: "medium", label: "وسط" },
-  { id: "large", label: "كبيرة" },
-];
-
 export default function NewCarModal({ onClose, onCreated }: { onClose: () => void; onCreated: (job: any) => void }) {
   const { token, branchId } = useAuth();
+  const { t } = useTranslation();
   const [bays, setBays] = useState<Bay[]>([]);
   const [plateNumber, setPlateNumber] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -28,6 +24,12 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
   const [photos, setPhotos] = useState<Blob[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const CAR_TYPES = [
+    { id: "small", label: t("newCar.types.small") },
+    { id: "medium", label: t("newCar.types.medium") },
+    { id: "large", label: t("newCar.types.large") },
+  ];
 
   useEffect(() => {
     if (!token || !branchId) return;
@@ -40,8 +42,8 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
   }, [token, branchId]);
 
   async function submit() {
-    if (!plateNumber.trim()) return setError("رقم اللوحة مطلوب");
-    if (photos.length < 4) return setError("التصوير الإجباري: 4 صور من جميع الزوايا قبل الغسيل");
+    if (!plateNumber.trim()) return setError(t("newCar.plateRequired"));
+    if (photos.length < 4) return setError(t("newCar.photosRequired"));
     setError(null);
     setSubmitting(true);
 
@@ -87,18 +89,18 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-title">🚗 إضافة سيارة جديدة</div>
+        <div className="modal-title">{t("newCar.title")}</div>
 
-        <label className="field-label">رقم اللوحة</label>
+        <label className="field-label">{t("newCar.plateLabel")}</label>
         <input
           className="text-input"
           value={plateNumber}
           onChange={(e) => setPlateNumber(e.target.value)}
-          placeholder="أ ب ج 1234"
+          placeholder={t("newCar.platePlaceholder")}
           autoFocus
         />
 
-        <label className="field-label">رقم جوال العميل (اختياري)</label>
+        <label className="field-label">{t("newCar.phoneLabel")}</label>
         <input
           className="text-input"
           value={customerPhone}
@@ -107,7 +109,7 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
           inputMode="tel"
         />
 
-        <label className="field-label">نوع السيارة</label>
+        <label className="field-label">{t("newCar.carTypeLabel")}</label>
         <div className="chip-row">
           {CAR_TYPES.map((c) => (
             <button
@@ -120,7 +122,7 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
           ))}
         </div>
 
-        <label className="field-label">الموقف (Bay)</label>
+        <label className="field-label">{t("newCar.bayLabel")}</label>
         <div className="chip-row">
           {bays.map((b) => (
             <button
@@ -131,21 +133,21 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
               {b.bayName}
             </button>
           ))}
-          {bays.length === 0 && <div style={{ color: "var(--muted)" }}>لا توجد مواقف مسجلة لهذا الفرع</div>}
+          {bays.length === 0 && <div style={{ color: "var(--muted)" }}>{t("newCar.noBays")}</div>}
         </div>
 
-        <label className="field-label">📸 صور ما قبل الغسيل (إجبارية - 4 زوايا)</label>
-        <PhotoCaptureGrid count={4} label="فحص قبل الغسيل" onChange={setPhotos} />
+        <label className="field-label">{t("newCar.photosLabel")}</label>
+        <PhotoCaptureGrid count={4} label={t("newCar.photosCaptureLabel")} onChange={setPhotos} />
 
         <button
           className={`chip-btn ${isHighlyDirty ? "active" : ""}`}
           style={{ width: "100%", marginBottom: 16 }}
           onClick={() => setIsHighlyDirty((v) => !v)}
         >
-          {isHighlyDirty ? "✅ " : "⚠️ "} سيارة شديدة الاتساخ - خدوش مخفية
+          {isHighlyDirty ? "✅ " : "⚠️ "} {t("newCar.dirtyToggle")}
         </button>
 
-        <label className="field-label">ملاحظات خدوش / صدمات قديمة (اختياري)</label>
+        <label className="field-label">{t("newCar.scratchesLabel")}</label>
         <input
           className="text-input"
           value={scratchesNotes}
@@ -156,10 +158,10 @@ export default function NewCarModal({ onClose, onCreated }: { onClose: () => voi
 
         <div className="modal-actions">
           <button className="big-btn secondary" onClick={onClose}>
-            إلغاء
+            {t("common.cancel")}
           </button>
           <button className="big-btn success" onClick={submit} disabled={submitting}>
-            {submitting ? "...جاري الحفظ" : "إضافة السيارة"}
+            {submitting ? t("common.saving") : t("newCar.submitBtn")}
           </button>
         </div>
       </div>

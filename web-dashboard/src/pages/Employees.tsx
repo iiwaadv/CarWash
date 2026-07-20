@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, apiFetchJson } from "../lib/api";
 
@@ -15,15 +16,9 @@ interface EmployeeRow {
   branch: { name: string };
 }
 
-const ROLES = [
-  { id: "manager", label: "مدير عام" },
-  { id: "supervisor", label: "مشرف" },
-  { id: "washer", label: "عامل غسيل" },
-  { id: "detailer", label: "فني تنشيف" },
-];
-
 export default function Employees() {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [name, setName] = useState("");
@@ -35,6 +30,13 @@ export default function Employees() {
   const [newPin, setNewPin] = useState("");
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
+
+  const ROLES = [
+    { id: "manager", label: t("employees.roles.manager") },
+    { id: "supervisor", label: t("employees.roles.supervisor") },
+    { id: "washer", label: t("employees.roles.washer") },
+    { id: "detailer", label: t("employees.roles.detailer") },
+  ];
 
   async function load() {
     const [b, e] = await Promise.all([apiFetch("/api/branches", token), apiFetch("/api/employees", token)]);
@@ -51,7 +53,7 @@ export default function Employees() {
   async function createEmployee(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (pin.length !== 4) return setError("رمز PIN يجب أن يكون 4 أرقام");
+    if (pin.length !== 4) return setError(t("employees.pinLengthError"));
     try {
       await apiFetchJson("/api/employees", token, "POST", { name, role, branchId, pinCode: pin });
       setName("");
@@ -90,13 +92,13 @@ export default function Employees() {
 
   return (
     <div>
-      <div className="page-title">👥 إدارة الطاقم والصلاحيات</div>
+      <div className="page-title">{t("employees.title")}</div>
 
       <div className="section-card">
-        <div className="section-title">إضافة موظف جديد</div>
+        <div className="section-title">{t("employees.addTitle")}</div>
         <form onSubmit={createEmployee}>
           <div className="form-row">
-            <input placeholder="الاسم" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input placeholder={t("employees.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} required />
             <select value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLES.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -112,29 +114,29 @@ export default function Employees() {
               ))}
             </select>
             <input
-              placeholder="PIN (4 أرقام)"
+              placeholder={t("employees.pinPlaceholder")}
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
               maxLength={4}
               inputMode="numeric"
               required
             />
-            <button className="btn">إضافة</button>
+            <button className="btn">{t("common.add")}</button>
           </div>
           {error && <div style={{ color: "var(--danger)", fontSize: 13 }}>{error}</div>}
         </form>
       </div>
 
       <div className="section-card">
-        <div className="section-title">قائمة الموظفين</div>
+        <div className="section-title">{t("employees.listTitle")}</div>
         <table>
           <thead>
             <tr>
-              <th>الاسم</th>
-              <th>الدور</th>
-              <th>الفرع</th>
-              <th>الحالة</th>
-              <th>إجراءات</th>
+              <th>{t("employees.colName")}</th>
+              <th>{t("employees.colRole")}</th>
+              <th>{t("employees.colBranch")}</th>
+              <th>{t("employees.colStatus")}</th>
+              <th>{t("employees.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -150,10 +152,10 @@ export default function Employees() {
                         autoFocus
                       />
                       <button className="btn" onClick={() => submitRename(emp.id)}>
-                        حفظ
+                        {t("common.save")}
                       </button>
                       <button className="btn secondary" onClick={() => setRenamingId(null)}>
-                        إلغاء
+                        {t("common.cancel")}
                       </button>
                     </div>
                   ) : (
@@ -164,32 +166,32 @@ export default function Employees() {
                 <td>{emp.branch?.name}</td>
                 <td>
                   <span className={`pill ${emp.isActive ? "active" : "inactive"}`}>
-                    {emp.isActive ? "نشط" : "متوقف"}
+                    {emp.isActive ? t("common.active") : t("common.inactive")}
                   </span>
                 </td>
                 <td style={{ display: "flex", gap: 6 }}>
                   {renamingId !== emp.id && (
                     <button className="btn secondary" onClick={() => startRename(emp)}>
-                      تعديل الاسم
+                      {t("employees.editName")}
                     </button>
                   )}
                   <button className="btn secondary" onClick={() => setResetPinFor(emp.id)}>
-                    تغيير PIN
+                    {t("employees.changePin")}
                   </button>
                   <button className={`btn ${emp.isActive ? "danger" : "success"}`} onClick={() => toggleActive(emp)}>
-                    {emp.isActive ? "إيقاف" : "تفعيل"}
+                    {emp.isActive ? t("employees.deactivate") : t("employees.activate")}
                   </button>
                   {resetPinFor === emp.id && (
                     <>
                       <input
-                        placeholder="PIN جديد"
+                        placeholder={t("employees.newPinPlaceholder")}
                         value={newPin}
                         onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                         maxLength={4}
                         style={{ width: 90 }}
                       />
                       <button className="btn" onClick={() => submitResetPin(emp.id)}>
-                        حفظ
+                        {t("common.save")}
                       </button>
                     </>
                   )}

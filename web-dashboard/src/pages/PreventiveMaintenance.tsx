@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, apiFetchJson } from "../lib/api";
 
@@ -22,6 +23,7 @@ interface ScheduleRow {
 
 export default function PreventiveMaintenance() {
   const { token } = useAuth();
+  const { t, i18n } = useTranslation();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [schedules, setSchedules] = useState<ScheduleRow[]>([]);
   const [equipmentName, setEquipmentName] = useState("");
@@ -88,30 +90,31 @@ export default function PreventiveMaintenance() {
   }
 
   const overdueCount = schedules.filter((s) => s.isOverdue).length;
+  const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   return (
     <div>
-      <div className="page-title">🛠️ الصيانة الوقائية الدورية</div>
+      <div className="page-title">{t("maintenance.title")}</div>
 
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="value" style={{ color: overdueCount > 0 ? "var(--danger)" : "inherit" }}>
             {overdueCount}
           </div>
-          <div className="label">معدات متأخرة عن الصيانة</div>
+          <div className="label">{t("maintenance.overdueCount")}</div>
         </div>
         <div className="kpi-card">
           <div className="value">{schedules.length}</div>
-          <div className="label">إجمالي المعدات المتابعة</div>
+          <div className="label">{t("maintenance.totalCount")}</div>
         </div>
       </div>
 
       <div className="section-card">
-        <div className="section-title">إضافة معدة إلى جدول الصيانة</div>
+        <div className="section-title">{t("maintenance.addTitle")}</div>
         <form onSubmit={createSchedule}>
           <div className="form-row">
             <input
-              placeholder="اسم المعدة (مثال: مضخة ضغط عالي - موقف 1)"
+              placeholder={t("maintenance.equipmentNamePlaceholder")}
               value={equipmentName}
               onChange={(e) => setEquipmentName(e.target.value)}
               required
@@ -126,30 +129,30 @@ export default function PreventiveMaintenance() {
             <input
               type="number"
               min={1}
-              placeholder="عدد الأيام بين كل صيانة"
+              placeholder={t("maintenance.intervalPlaceholder")}
               value={intervalDays}
               onChange={(e) => setIntervalDays(Number(e.target.value))}
               required
               style={{ width: 100 }}
             />
-            <input placeholder="ملاحظات (اختياري)" value={notes} onChange={(e) => setNotes(e.target.value)} />
-            <button className="btn">إضافة</button>
+            <input placeholder={t("maintenance.notesPlaceholder")} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <button className="btn">{t("common.add")}</button>
           </div>
           {error && <div style={{ color: "var(--danger)", fontSize: 13 }}>{error}</div>}
         </form>
       </div>
 
       <div className="section-card">
-        <div className="section-title">جدول الصيانة الحالي</div>
+        <div className="section-title">{t("maintenance.scheduleTitle")}</div>
         <table>
           <thead>
             <tr>
-              <th>المعدة</th>
-              <th>الفرع</th>
-              <th>دورة الصيانة</th>
-              <th>آخر صيانة</th>
-              <th>الاستحقاق القادم</th>
-              <th>إجراءات</th>
+              <th>{t("maintenance.colEquipment")}</th>
+              <th>{t("maintenance.colBranch")}</th>
+              <th>{t("maintenance.colCycle")}</th>
+              <th>{t("maintenance.colLastDone")}</th>
+              <th>{t("maintenance.colNextDue")}</th>
+              <th>{t("maintenance.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -160,20 +163,20 @@ export default function PreventiveMaintenance() {
                   {s.notes && <div style={{ color: "var(--muted)", fontSize: 12 }}>{s.notes}</div>}
                 </td>
                 <td>{s.branch.name}</td>
-                <td>كل {s.intervalDays} يوم</td>
-                <td>{s.lastPerformedAt ? new Date(s.lastPerformedAt).toLocaleDateString("ar-SA") : "—"}</td>
+                <td>{t("maintenance.everyNDays", { n: s.intervalDays })}</td>
+                <td>{s.lastPerformedAt ? new Date(s.lastPerformedAt).toLocaleDateString(locale) : "—"}</td>
                 <td style={{ color: s.isOverdue ? "var(--danger)" : "inherit", fontWeight: s.isOverdue ? 700 : 400 }}>
-                  {new Date(s.nextDueAt).toLocaleDateString("ar-SA")}
+                  {new Date(s.nextDueAt).toLocaleDateString(locale)}
                   {s.isOverdue
-                    ? ` — متأخرة ${Math.abs(s.daysUntilDue)} يوم`
-                    : ` — بعد ${s.daysUntilDue} يوم`}
+                    ? ` ${t("maintenance.overdueByDays", { n: Math.abs(s.daysUntilDue) })}`
+                    : ` ${t("maintenance.dueInDays", { n: s.daysUntilDue })}`}
                 </td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button className="btn success" disabled={busyId === s.id} onClick={() => markDone(s.id)}>
-                    ✅ تمت الصيانة
+                    {t("maintenance.markDone")}
                   </button>
                   <button className="btn danger" disabled={busyId === s.id} onClick={() => removeSchedule(s.id)}>
-                    حذف
+                    {t("common.delete")}
                   </button>
                 </td>
               </tr>
@@ -181,7 +184,7 @@ export default function PreventiveMaintenance() {
             {schedules.length === 0 && (
               <tr>
                 <td colSpan={6} className="empty-state">
-                  لا توجد معدات في جدول الصيانة الوقائية بعد
+                  {t("maintenance.empty")}
                 </td>
               </tr>
             )}

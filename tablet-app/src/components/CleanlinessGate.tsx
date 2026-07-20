@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, API_BASE } from "../lib/api";
 import { enqueue } from "../lib/sync";
@@ -16,6 +17,7 @@ const CACHE_KEY = "coe_cleanliness_status";
 
 export default function CleanlinessGate() {
   const { token, employee } = useAuth();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<CleanlinessStatus | null>(
     JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null")
   );
@@ -89,15 +91,13 @@ export default function CleanlinessGate() {
   return (
     <div className="overlay-lock">
       <div style={{ fontSize: 44 }}>🧴</div>
-      <div style={{ fontSize: 22, fontWeight: 800 }}>جولة النظافة الإلزامية متأخرة</div>
-      <div style={{ color: "var(--muted)", maxWidth: 480 }}>
-        صوّر الحمامات وغرف الانتظار والساحة وهي نظيفة ومعطرة لإلغاء تجميد الشاشة والاستمرار في العمل.
-      </div>
+      <div style={{ fontSize: 22, fontWeight: 800 }}>{t("cleanliness.overdueTitle")}</div>
+      <div style={{ color: "var(--muted)", maxWidth: 480 }}>{t("cleanliness.overdueBody")}</div>
       <div style={{ width: "100%", maxWidth: 480 }}>
-        <PhotoCaptureGrid count={4} onChange={setPhotos} label="نظافة" />
+        <PhotoCaptureGrid count={4} onChange={setPhotos} label={t("cleanliness.photoLabel")} />
       </div>
       <button className="big-btn success" disabled={photos.length === 0 || submitting} onClick={submit}>
-        {submitting ? "...جاري الحفظ" : "تم التصوير — إلغاء التجميد"}
+        {submitting ? t("common.saving") : t("cleanliness.submitBtn")}
       </button>
     </div>
   );

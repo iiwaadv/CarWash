@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
+import CircularProgress from "../components/CircularProgress";
+import MiniBarChart from "../components/MiniBarChart";
 
 interface BranchCard {
   id: number;
@@ -23,10 +26,9 @@ interface Kpis {
   overdueMaintenanceSchedules: number;
 }
 
-const STATUS_LABEL: Record<string, string> = { open: "مفتوح", closed: "مغلق", maintenance: "صيانة" };
-
 export default function Overview() {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [branches, setBranches] = useState<BranchCard[]>([]);
   const [kpis, setKpis] = useState<Kpis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,43 +50,98 @@ export default function Overview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  const alerts = useMemo(() => {
+    const list: { key: string; text: string; tone: "bad" | "warning" }[] = [];
+    if (kpis && kpis.pendingIncidents > 0) {
+      list.push({ key: "incidents", text: `${kpis.pendingIncidents} — ${t("overview.pendingIncidents")}`, tone: "warning" });
+    }
+    if (kpis && kpis.overdueMaintenanceSchedules > 0) {
+      list.push({ key: "maintenance", text: `${kpis.overdueMaintenanceSchedules} — ${t("overview.overdueMaintenance")}`, tone: "bad" });
+    }
+    branches.forEach((b) => {
+      if (b.unresolvedFuriousFeedback > 0) {
+        list.push({ key: `furious-${b.id}`, text: `${b.name}: ${b.unresolvedFuriousFeedback} ${t("overview.furiousCustomer")}`, tone: "bad" });
+      }
+      if (b.cleanlinessOverdue) {
+        list.push({ key: `clean-${b.id}`, text: `${b.name}: ${t("overview.cleanlinessStatus")} — ${t("overview.overdue")}`, tone: "warning" });
+      }
+    });
+    return list;
+  }, [kpis, branches, t]);
+
+  const barData = useMemo(
+    () => branches.map((b) => ({ label: b.name, value: b.activeJobs })),
+    [branches]
+  );
+
   return (
-    <div>
-      <div className="page-title">رقابة 360 درجة</div>
+    <div className="overview-page">
+      <div className="page-title">{t("overview.title")}</div>
+
+      <div className={`alerts-banner ${alerts.length === 0 ? "calm" : ""}`}>
+        <div className="alerts-banner-title">{alerts.length === 0 ? t("overview.noAlerts") : t("overview.alertsTitle")}</div>
+        {alerts.length > 0 && (
+          <div className="alerts-banner-list">
+            {alerts.map((a) => (
+              <span key={a.key} className={`alert-chip alert-chip-${a.tone}`}>
+                {a.text}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {kpis && (
-        <div className="kpi-grid">
-          <div className="kpi-card">
-            <div className="value">{kpis.upsellAcceptanceRatePct}%</div>
-            <div className="label">نسبة قبول البيع الإضافي (الهدف &gt;40%)</div>
-          </div>
-          <div className="kpi-card">
-            <div className="value">{kpis.towelLossRatePct}%</div>
-            <div className="label">مؤشر هدر المناشف (الهدف &lt;5%)</div>
-          </div>
-          <div className="kpi-card">
-            <div className="value">{kpis.touchUpCorrectionRatePct}%</div>
-            <div className="label">مؤشر التصحيح بالمنشفة (إهمال التنشيف)</div>
-          </div>
-          <div className="kpi-card">
-            <div className="value">{kpis.estimatedSatisfactionScore}/5</div>
-            <div className="label">رضا العملاء التقديري</div>
-          </div>
-          <div className="kpi-card">
-            <div className="value">{kpis.pendingIncidents}</div>
-            <div className="label">قرارات معلقة بانتظار الاعتماد</div>
-          </div>
-          <div className="kpi-card">
-            <div className="value" style={{ color: kpis.overdueMaintenanceSchedules > 0 ? "var(--danger)" : "inherit" }}>
-              {kpis.overdueMaintenanceSchedules}
+        <div className="circular-kpi-grid">
+          <CircularProgress
+            value={kpis.upsellAcceptanceRatePct}
+            label={t("overview.upsellRate")}
+            tone={kpis.upsellAcceptanceRatePct >= 40 ? "good" : "warning"}
+          />
+          <CircularProgress
+            value={kpis.towelLossRatePct}
+            label={t("overview.towelLossRate")}
+            tone={kpis.towelLossRatePct <= 5 ? "good" : "bad"}
+          />
+          <CircularProgress
+            value={kpis.touchUpCorrectionRatePct}
+            label={t("overview.touchUpRate")}
+            tone={kpis.touchUpCorrectionRatePct <= 10 ? "good" : "warning"}
+          />
+          <CircularProgress
+            value={(kpis.estimatedSatisfactionScore / 5) * 100}
+            displayValue={`${kpis.estimatedSatisfactionScore}/5`}
+            label={t("overview.satisfaction")}
+            tone={kpis.estimatedSatisfactionScore >= 4 ? "good" : kpis.estimatedSatisfactionScore >= 3 ? "warning" : "bad"}
+          />
+          <div className="stat-card">
+            <div className="stat-icon">📥</div>
+            <div>
+              <div className={`stat-value ${kpis.pendingIncidents > 0 ? "warn" : ""}`}>{kpis.pendingIncidents}</div>
+              <div className="stat-label">{t("overview.pendingIncidents")}</div>
             </div>
-            <div className="label">معدات متأخرة عن الصيانة الوقائية</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🛠️</div>
+            <div>
+              <div className={`stat-value ${kpis.overdueMaintenanceSchedules > 0 ? "danger" : ""}`}>
+                {kpis.overdueMaintenanceSchedules}
+              </div>
+              <div className="stat-label">{t("overview.overdueMaintenance")}</div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="section-title">بطاقات الفروع الحية</div>
-      {loading && <div className="empty-state">...جاري التحميل</div>}
+      {barData.length > 0 && (
+        <div className="section-card compact">
+          <div className="section-title">{t("overview.trendTitle")}</div>
+          <MiniBarChart items={barData} />
+        </div>
+      )}
+
+      <div className="section-title">{t("overview.liveBranches")}</div>
+      {loading && <div className="empty-state">{t("common.loading")}</div>}
       <div className="branch-grid">
         {branches.map((b) => (
           <div className="branch-card" key={b.id}>
@@ -93,27 +150,33 @@ export default function Overview() {
                 <span className={`status-dot status-${b.status}`} />
                 {b.name}
               </div>
-              <span style={{ color: "var(--muted)", fontSize: 13 }}>{STATUS_LABEL[b.status] ?? b.status}</span>
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>{t(`overview.status.${b.status}`, b.status)}</span>
             </div>
             <div className="metric-row">
-              <span>سيارات نشطة الآن</span>
+              <span>{t("overview.activeJobsNow")}</span>
               <strong>{b.activeJobs}</strong>
             </div>
             <div className="metric-row">
-              <span>مناشف مفقودة (آخر وردية)</span>
+              <span>{t("overview.towelsLost")}</span>
               <strong>{b.towelsLostLastShift ?? "—"}</strong>
             </div>
             <div className="metric-row" style={{ border: "none" }}>
-              <span>حالة جولة النظافة</span>
+              <span>{t("overview.cleanlinessStatus")}</span>
               <strong style={{ color: b.cleanlinessOverdue ? "var(--danger)" : "var(--success)" }}>
-                {b.cleanlinessOverdue ? "متأخرة" : "ملتزمة"}
+                {b.cleanlinessOverdue ? t("overview.overdue") : t("overview.onTrack")}
               </strong>
             </div>
             {(b.pendingIncidents > 0 || b.unresolvedFuriousFeedback > 0) && (
               <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {b.pendingIncidents > 0 && <span className="alert-badge">{b.pendingIncidents} قرار معلق</span>}
+                {b.pendingIncidents > 0 && (
+                  <span className="alert-badge">
+                    {b.pendingIncidents} {t("overview.pendingDecision")}
+                  </span>
+                )}
                 {b.unresolvedFuriousFeedback > 0 && (
-                  <span className="alert-badge">{b.unresolvedFuriousFeedback} عميل غاضب</span>
+                  <span className="alert-badge">
+                    {b.unresolvedFuriousFeedback} {t("overview.furiousCustomer")}
+                  </span>
                 )}
               </div>
             )}

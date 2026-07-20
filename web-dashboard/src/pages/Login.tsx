@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
+  const { t, i18n } = useTranslation();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -14,7 +16,7 @@ export default function Login() {
     try {
       await login(pin);
     } catch (err: any) {
-      setError(err.message ?? "فشل تسجيل الدخول");
+      setError(err.message ?? t("login.failed"));
     } finally {
       setBusy(false);
     }
@@ -22,11 +24,17 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+      <button
+        className="lang-switch lang-switch-floating"
+        onClick={() => i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar")}
+      >
+        🌐 {t("topbar.language")}
+      </button>
       <img src="/ejaz-logo.png" alt="إيجاز" className="login-logo" />
-      <div style={{ fontSize: 26, fontWeight: 800 }}>🚗 نظام إدارة مغاسل إيجاز</div>
+      <div style={{ fontSize: 26, fontWeight: 800 }}>{t("brand.nameWithEmoji")}</div>
       <div className="login-card">
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>لوحة تحكم المدير العام</div>
-        <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 6 }}>مرحباً بك، يرجى تسجيل الدخول للمتابعة</div>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("login.title")}</div>
+        <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 6 }}>{t("login.welcome")}</div>
         <form onSubmit={submit}>
           <input
             value={pin}
@@ -37,10 +45,10 @@ export default function Login() {
           />
           {error && <div style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10 }}>{error}</div>}
           <button className="btn" style={{ width: "100%" }} disabled={pin.length !== 4 || busy}>
-            {busy ? "...جاري الدخول" : "دخول"}
+            {busy ? t("login.submitting") : t("login.submit")}
           </button>
         </form>
-        <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 14 }}>وضع تجريبي: PIN 9999</div>
+        <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 14 }}>{t("login.demoHint")}</div>
       </div>
     </div>
   );

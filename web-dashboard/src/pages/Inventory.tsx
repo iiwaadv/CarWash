@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 
@@ -18,17 +19,18 @@ interface UpsellAnalytics {
   totalBonusPaid: number;
 }
 
-const REASON_LABEL: Record<string, string> = {
-  too_expensive: "السعر غالي",
-  in_a_hurry: "مستعجل",
-  old_car: "السيارة قديمة",
-  loyalty_program: "مشترك ولاء",
-};
-
 export default function Inventory() {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [towels, setTowels] = useState<TowelRow[]>([]);
   const [upsell, setUpsell] = useState<UpsellAnalytics | null>(null);
+
+  const REASON_LABEL: Record<string, string> = {
+    too_expensive: t("inventory.reasons.too_expensive"),
+    in_a_hurry: t("inventory.reasons.in_a_hurry"),
+    old_car: t("inventory.reasons.old_car"),
+    loyalty_program: t("inventory.reasons.loyalty_program"),
+  };
 
   useEffect(() => {
     apiFetch("/api/shift-inventory/missing-towels", token).then(setTowels);
@@ -37,32 +39,32 @@ export default function Inventory() {
 
   return (
     <div>
-      <div className="page-title">📦 المخزون والبيع الإضافي</div>
+      <div className="page-title">{t("inventory.title")}</div>
 
       <div className="section-card">
-        <div className="section-title">🧺 المناشف المفقودة لكل مشرف</div>
+        <div className="section-title">{t("inventory.towelsBySupervisor")}</div>
         <table>
           <thead>
             <tr>
-              <th>المشرف</th>
-              <th>عدد الورديات</th>
-              <th>إجمالي المناشف المفقودة</th>
+              <th>{t("inventory.colSupervisor")}</th>
+              <th>{t("inventory.colShifts")}</th>
+              <th>{t("inventory.colTotalLost")}</th>
             </tr>
           </thead>
           <tbody>
-            {towels.map((t) => (
-              <tr key={t.supervisorId}>
-                <td>{t.name}</td>
-                <td>{t.shifts}</td>
-                <td style={{ color: t.towelsLost > 10 ? "var(--danger)" : "inherit", fontWeight: 700 }}>
-                  {t.towelsLost}
+            {towels.map((t2) => (
+              <tr key={t2.supervisorId}>
+                <td>{t2.name}</td>
+                <td>{t2.shifts}</td>
+                <td style={{ color: t2.towelsLost > 10 ? "var(--danger)" : "inherit", fontWeight: 700 }}>
+                  {t2.towelsLost}
                 </td>
               </tr>
             ))}
             {towels.length === 0 && (
               <tr>
                 <td colSpan={3} className="empty-state">
-                  لا توجد بيانات جرد بعد
+                  {t("inventory.emptyTowels")}
                 </td>
               </tr>
             )}
@@ -72,29 +74,29 @@ export default function Inventory() {
 
       {upsell && (
         <div className="section-card">
-          <div className="section-title">🛍️ تحليل البيع الإضافي والرفض</div>
+          <div className="section-title">{t("inventory.upsellAnalysis")}</div>
           <div className="kpi-grid">
             <div className="kpi-card">
               <div className="value">{upsell.acceptanceRate}%</div>
-              <div className="label">نسبة القبول</div>
+              <div className="label">{t("inventory.acceptanceRate")}</div>
             </div>
             <div className="kpi-card">
               <div className="value">{upsell.totalBonusPaid.toFixed(2)}</div>
-              <div className="label">إجمالي البونص المدفوع (ر.س)</div>
+              <div className="label">{t("inventory.totalBonus")}</div>
             </div>
             <div className="kpi-card">
               <div className="value">{upsell.total}</div>
-              <div className="label">إجمالي محاولات البيع</div>
+              <div className="label">{t("inventory.totalAttempts")}</div>
             </div>
           </div>
           <div className="section-title" style={{ fontSize: 14 }}>
-            توزيع أسباب الرفض
+            {t("inventory.rejectionBreakdown")}
           </div>
           <table>
             <thead>
               <tr>
-                <th>السبب</th>
-                <th>العدد</th>
+                <th>{t("inventory.colReason")}</th>
+                <th>{t("inventory.colCount")}</th>
               </tr>
             </thead>
             <tbody>

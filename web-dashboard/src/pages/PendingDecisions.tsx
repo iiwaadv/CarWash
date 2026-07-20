@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, API_BASE } from "../lib/api";
 
@@ -16,15 +17,16 @@ interface Incident {
   createdAt: string;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  equipment_breakdown: "عطل معدات",
-  customer_car_damage: "تلف سيارة عميل",
-};
-
 export default function PendingDecisions() {
   const { token } = useAuth();
+  const { t, i18n } = useTranslation();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [busyId, setBusyId] = useState<number | null>(null);
+
+  const TYPE_LABEL: Record<string, string> = {
+    equipment_breakdown: t("decisions.typeEquipment"),
+    customer_car_damage: t("decisions.typeCarDamage"),
+  };
 
   async function load() {
     const data = await apiFetch("/api/dashboard/pending-decisions", token);
@@ -50,9 +52,9 @@ export default function PendingDecisions() {
 
   return (
     <div>
-      <div className="page-title">📥 صندوق القرارات المعلقة</div>
+      <div className="page-title">{t("decisions.title")}</div>
       <div className="section-card">
-        {incidents.length === 0 && <div className="empty-state">لا توجد قرارات معلقة حالياً 🎉</div>}
+        {incidents.length === 0 && <div className="empty-state">{t("decisions.empty")}</div>}
         {incidents.map((inc) => {
           const photos: string[] = inc.photosJson ? JSON.parse(inc.photosJson) : [];
           return (
@@ -63,10 +65,22 @@ export default function PendingDecisions() {
                 </div>
                 <div style={{ color: "var(--muted)", fontSize: 14, margin: "4px 0" }}>{inc.description}</div>
                 <div className="amounts">
-                  {inc.compensationPaid > 0 && <span>تعويض مدفوع: {inc.compensationPaid} ر.س</span>}
-                  {inc.proposedDeduction > 0 && <span>مقترح خصم: {inc.proposedDeduction} ر.س</span>}
-                  {inc.repairCost > 0 && <span>تكلفة إصلاح: {inc.repairCost} ر.س</span>}
-                  <span>{new Date(inc.createdAt).toLocaleString("ar-SA")}</span>
+                  {inc.compensationPaid > 0 && (
+                    <span>
+                      {t("decisions.compensationPaid")}: {inc.compensationPaid} {t("common.riyal")}
+                    </span>
+                  )}
+                  {inc.proposedDeduction > 0 && (
+                    <span>
+                      {t("decisions.proposedDeduction")}: {inc.proposedDeduction} {t("common.riyal")}
+                    </span>
+                  )}
+                  {inc.repairCost > 0 && (
+                    <span>
+                      {t("decisions.repairCost")}: {inc.repairCost} {t("common.riyal")}
+                    </span>
+                  )}
+                  <span>{new Date(inc.createdAt).toLocaleString(i18n.language === "ar" ? "ar-SA" : "en-US")}</span>
                 </div>
                 {photos.length > 0 && (
                   <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
@@ -78,10 +92,10 @@ export default function PendingDecisions() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn danger" disabled={busyId === inc.id} onClick={() => decide(inc.id, "reject")}>
-                  رفض
+                  {t("decisions.reject")}
                 </button>
                 <button className="btn success" disabled={busyId === inc.id} onClick={() => decide(inc.id, "approve")}>
-                  اعتماد
+                  {t("decisions.approve")}
                 </button>
               </div>
             </div>

@@ -1,19 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { enqueue, flushOutbox } from "../lib/sync";
 import PhotoCaptureGrid from "./PhotoCaptureGrid";
 
-const TYPES = [
-  { id: "equipment_breakdown", label: "عطل معدات" },
-  { id: "customer_car_damage", label: "تلف سيارة عميل" },
-];
-const SEVERITIES = [
-  { id: "critical_stop", label: "توقف كامل" },
-  { id: "partial_slow", label: "تعطيل جزئي" },
-];
-
 export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [type, setType] = useState("equipment_breakdown");
   const [severity, setSeverity] = useState("partial_slow");
   const [description, setDescription] = useState("");
@@ -22,6 +15,15 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
   const [photos, setPhotos] = useState<Blob[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  const TYPES = [
+    { id: "equipment_breakdown", label: t("maintenance.types.equipment_breakdown") },
+    { id: "customer_car_damage", label: t("maintenance.types.customer_car_damage") },
+  ];
+  const SEVERITIES = [
+    { id: "critical_stop", label: t("maintenance.severities.critical_stop") },
+    { id: "partial_slow", label: t("maintenance.severities.partial_slow") },
+  ];
 
   async function submit() {
     setSubmitting(true);
@@ -51,14 +53,12 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
       <div className="modal-overlay">
         <div className="modal-card center-col">
           <div style={{ fontSize: 44 }}>✅</div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>تم رفع البلاغ</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{t("maintenance.doneTitle")}</div>
           <div style={{ color: "var(--muted)" }}>
-            {type === "customer_car_damage"
-              ? "تم تسجيل التعويض ورفع مقترح الخصم لمعالجة المدير العام"
-              : "تم إشعار فريق الصيانة وسيتم تتبع تكلفة الإصلاح"}
+            {type === "customer_car_damage" ? t("maintenance.doneDamage") : t("maintenance.doneEquipment")}
           </div>
           <button className="big-btn success" style={{ width: "100%" }} onClick={onClose}>
-            إغلاق
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -68,20 +68,20 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-title">🛠️ بلاغ عطل / حادث</div>
+        <div className="modal-title">{t("maintenance.title")}</div>
 
-        <div className="field-label">نوع البلاغ</div>
+        <div className="field-label">{t("maintenance.typeLabel")}</div>
         <div className="chip-row">
-          {TYPES.map((t) => (
-            <button key={t.id} className={`chip-btn ${type === t.id ? "active" : ""}`} onClick={() => setType(t.id)}>
-              {t.label}
+          {TYPES.map((tp) => (
+            <button key={tp.id} className={`chip-btn ${type === tp.id ? "active" : ""}`} onClick={() => setType(tp.id)}>
+              {tp.label}
             </button>
           ))}
         </div>
 
         {type === "equipment_breakdown" && (
           <>
-            <div className="field-label">درجة الخطورة</div>
+            <div className="field-label">{t("maintenance.severityLabel")}</div>
             <div className="chip-row">
               {SEVERITIES.map((s) => (
                 <button key={s.id} className={`chip-btn ${severity === s.id ? "active" : ""}`} onClick={() => setSeverity(s.id)}>
@@ -94,25 +94,25 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
 
         {type === "customer_car_damage" && (
           <>
-            <label className="field-label">التعويض المدفوع للعميل فوراً (ر.س)</label>
+            <label className="field-label">{t("maintenance.compensationLabel")}</label>
             <input className="text-input" inputMode="decimal" value={compensationPaid} onChange={(e) => setCompensationPaid(e.target.value)} />
-            <label className="field-label">مقترح الخصم من العمال المتسببين (ر.س)</label>
+            <label className="field-label">{t("maintenance.deductionLabel")}</label>
             <input className="text-input" inputMode="decimal" value={proposedDeduction} onChange={(e) => setProposedDeduction(e.target.value)} />
           </>
         )}
 
-        <label className="field-label">وصف الحالة</label>
+        <label className="field-label">{t("maintenance.descriptionLabel")}</label>
         <input className="text-input" value={description} onChange={(e) => setDescription(e.target.value)} />
 
-        <label className="field-label">صور</label>
-        <PhotoCaptureGrid count={2} label="بلاغ" onChange={setPhotos} />
+        <label className="field-label">{t("maintenance.photosLabel")}</label>
+        <PhotoCaptureGrid count={2} label={t("maintenance.photosCaptureLabel")} onChange={setPhotos} />
 
         <div className="modal-actions">
           <button className="big-btn secondary" onClick={onClose}>
-            إلغاء
+            {t("common.cancel")}
           </button>
           <button className="big-btn danger" disabled={!description.trim() || submitting} onClick={submit}>
-            {submitting ? "...جاري الرفع" : "رفع البلاغ"}
+            {submitting ? t("common.uploading") : t("maintenance.submitBtn")}
           </button>
         </div>
       </div>

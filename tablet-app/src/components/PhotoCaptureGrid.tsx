@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { watermarkImage } from "../lib/watermark";
 
 interface Slot {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function PhotoCaptureGrid({ count, label, onChange }: Props) {
+  const { t } = useTranslation();
   const [slots, setSlots] = useState<(Slot | null)[]>(Array.from({ length: count }, () => null));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -38,11 +40,11 @@ export default function PhotoCaptureGrid({ count, label, onChange }: Props) {
           onClick={() => inputRefs.current[i]?.click()}
         >
           {slot ? (
-            <img src={slot.previewUrl} alt={`صورة ${i + 1}`} />
+            <img src={slot.previewUrl} alt={t("photoGrid.altPhoto", { n: i + 1 })} />
           ) : (
             <>
               <span style={{ fontSize: 22 }}>📷</span>
-              <span>زاوية {i + 1}</span>
+              <span>{t("photoGrid.angle", { n: i + 1 })}</span>
             </>
           )}
           <input

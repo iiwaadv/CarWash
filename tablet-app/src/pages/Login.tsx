@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../lib/api";
 
@@ -10,6 +11,7 @@ interface Branch {
 
 export default function Login() {
   const { login } = useAuth();
+  const { t, i18n } = useTranslation();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [pin, setPin] = useState("");
@@ -45,7 +47,7 @@ export default function Login() {
     try {
       await login(branchId, pin);
     } catch (err: any) {
-      setError(err.message ?? "فشل تسجيل الدخول");
+      setError(err.message === "offline_no_cache" ? t("login.offlineNoCache") : t("login.incorrectPin"));
       setPin("");
     } finally {
       setBusy(false);
@@ -64,10 +66,16 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+      <button
+        className="lang-switch lang-switch-floating"
+        onClick={() => i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar")}
+      >
+        🌐 {t("topbar.language")}
+      </button>
       <img src="/ejaz-logo.png" alt="إيجاز" className="login-logo" />
-      <div style={{ fontSize: 26, fontWeight: 800 }}>🚗 نظام إدارة مغاسل إيجاز</div>
-      <div style={{ color: "var(--muted)" }}>مرحباً بك، يرجى تسجيل الدخول للمتابعة</div>
-      <div style={{ color: "var(--muted)" }}>اختر الفرع ثم أدخل رمز الدخول المكون من 4 أرقام</div>
+      <div style={{ fontSize: 26, fontWeight: 800 }}>{t("brand.nameWithEmoji")}</div>
+      <div style={{ color: "var(--muted)" }}>{t("login.welcome")}</div>
+      <div style={{ color: "var(--muted)" }}>{t("login.chooseBranchAndPin")}</div>
 
       <div className="branch-select">
         {branches.map((b) => (
@@ -79,7 +87,7 @@ export default function Login() {
             {b.name}
           </button>
         ))}
-        {branches.length === 0 && <div style={{ color: "var(--muted)" }}>...جاري تحميل الفروع</div>}
+        {branches.length === 0 && <div style={{ color: "var(--muted)" }}>{t("login.loadingBranches")}</div>}
       </div>
 
       <div className="pin-dots">
@@ -89,7 +97,7 @@ export default function Login() {
       </div>
 
       {error && <div className="error-text">{error}</div>}
-      {busy && <div style={{ color: "var(--muted)" }}>...جاري التحقق</div>}
+      {busy && <div style={{ color: "var(--muted)" }}>{t("login.checking")}</div>}
 
       <div className="pin-pad">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"].map((k, i) =>
@@ -103,9 +111,7 @@ export default function Login() {
         )}
       </div>
 
-      <div style={{ fontSize: 12, color: "var(--muted)" }}>
-        وضع تجريبي: مشرف فرع 1 → PIN 1234 · مدير عام → PIN 9999
-      </div>
+      <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("login.demoHint")}</div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, API_BASE } from "../lib/api";
 
@@ -13,6 +14,7 @@ interface Feedback {
 
 export default function FeedbackPlayer() {
   const { token } = useAuth();
+  const { t, i18n } = useTranslation();
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [furiousOnly, setFuriousOnly] = useState(false);
 
@@ -33,42 +35,47 @@ export default function FeedbackPlayer() {
     setFeedback((prev) => prev.map((f) => (f.id === id ? { ...f, alertAcknowledged: true } : f)));
   }
 
+  const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
+
   return (
     <div>
-      <div className="page-title">🎵 مشغل تقييمات العملاء الصوتية</div>
+      <div className="page-title">{t("feedback.title")}</div>
       <div className="section-card">
         <div className="form-row">
           <button
             className={`btn ${furiousOnly ? "danger" : "secondary"}`}
             onClick={() => setFuriousOnly((v) => !v)}
           >
-            {furiousOnly ? "✓ عرض العملاء الغاضبين فقط" : "عرض الكل"}
+            {furiousOnly ? t("feedback.showFuriousOnly") : t("feedback.showAll")}
           </button>
         </div>
 
-        {feedback.length === 0 && <div className="empty-state">لا توجد تقييمات</div>}
+        {feedback.length === 0 && <div className="empty-state">{t("feedback.empty")}</div>}
 
         {feedback.map((f) => (
           <div className={`feedback-item ${f.isCustomerFurious && !f.alertAcknowledged ? "furious" : ""}`} key={f.id}>
             <div style={{ minWidth: 120 }}>
               <div style={{ fontWeight: 700 }}>{f.job.plateNumber}</div>
               <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                {new Date(f.createdAt).toLocaleString("ar-SA")}
+                {new Date(f.createdAt).toLocaleString(locale)}
               </div>
             </div>
 
             {f.voiceRecUrl ? (
               <audio controls src={`${API_BASE}${f.voiceRecUrl}`} style={{ flex: 1 }} />
             ) : (
-              <div style={{ color: "var(--muted)", flex: 1 }}>بدون تسجيل صوتي</div>
+              <div style={{ color: "var(--muted)", flex: 1 }}>{t("feedback.noRecording")}</div>
             )}
 
             {f.isCustomerFurious && (
-              <span className="alert-badge">😡 عميل غاضب{f.alertAcknowledged ? " (تم التعامل)" : ""}</span>
+              <span className="alert-badge">
+                {t("feedback.furious")}
+                {f.alertAcknowledged ? t("feedback.acknowledged") : ""}
+              </span>
             )}
             {f.isCustomerFurious && !f.alertAcknowledged && (
               <button className="btn secondary" onClick={() => acknowledge(f.id)}>
-                تم التعامل معه
+                {t("feedback.acknowledgeBtn")}
               </button>
             )}
           </div>

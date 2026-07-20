@@ -88,9 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    throw new Error(
-      navigator.onLine ? "رمز الدخول غير صحيح" : "لا يوجد اتصال، ولا يوجد جلسة محفوظة لهذا الفرع بهذا الرمز"
-    );
+    throw new Error(navigator.onLine ? "invalid_pin" : "offline_no_cache");
   };
 
   const unlock = async (pin: string): Promise<boolean> => {

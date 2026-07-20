@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import CleanlinessGate from "../components/CleanlinessGate";
 import NewCarModal from "../components/NewCarModal";
 import QualityCheckModal from "../components/QualityCheckModal";
@@ -7,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 import { useSync } from "../context/SyncContext";
 import { apiFetch } from "../lib/api";
 import { db } from "../lib/db";
-import { getGreeting } from "../lib/greeting";
 import { queueJobPatch } from "../lib/sync";
 
 interface Job {
@@ -24,9 +24,18 @@ interface Job {
 
 const CACHE_KEY = "coe_jobs_cache";
 
+function getGreetingKey(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return "topbar.greetingMorning";
+  if (hour >= 12 && hour < 17) return "topbar.greetingAfternoon";
+  if (hour >= 17 && hour < 20) return "topbar.greetingEvening";
+  return "topbar.greetingNight";
+}
+
 export default function LiveYard() {
   const { token, branchId, employee } = useAuth();
   const sync = useSync();
+  const { t, i18n } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>(JSON.parse(localStorage.getItem(CACHE_KEY) ?? "[]"));
   const [showNewCar, setShowNewCar] = useState(false);
   const [upsellFor, setUpsellFor] = useState<Job | null>(null);
@@ -64,11 +73,11 @@ export default function LiveYard() {
 
   const active = jobs.filter((j) => j.status !== "delivered");
   const columns: { key: string; title: string; jobs: Job[] }[] = [
-    { key: "queued", title: "⏳ في انتظار الدور", jobs: active.filter((j) => j.status === "queued") },
-    { key: "washing", title: "🚿 تحت الغسيل", jobs: active.filter((j) => j.status === "washing") },
+    { key: "queued", title: t("yard.columnQueued"), jobs: active.filter((j) => j.status === "queued") },
+    { key: "washing", title: t("yard.columnWashing"), jobs: active.filter((j) => j.status === "washing") },
     {
       key: "quality",
-      title: "✨ فحص الجودة والتسليم",
+      title: t("yard.columnQuality"),
       jobs: active.filter((j) => j.status === "quality_check" || j.status === "ready"),
     },
   ];
@@ -84,11 +93,14 @@ export default function LiveYard() {
   }
 
   const remaining = active.filter((j) => j.status !== "delivered").length;
+  const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   return (
     <div className="page" style={{ padding: 0, display: "flex", flexDirection: "column" }}>
       <div className="yard-summary">
-        {getGreeting()} — {employee?.name}، متبقي {remaining} {remaining === 1 ? "سيارة" : "سيارات"} لإكمال جدول اليوم 🚗
+        {t(getGreetingKey())} — {employee?.name}
+        {i18n.language === "ar" ? "، " : ", "}
+        {t("yard.remainingCars", { count: remaining })}
       </div>
       <div className="yard-board">
         {columns.map((col) => (
@@ -102,22 +114,22 @@ export default function LiveYard() {
                 <div className="car-card" key={String(job.id)}>
                   <div className="plate">{job.plateNumber}</div>
                   <div className="meta">
-                    <span>{job.bay?.bayName ?? (job.bayId ? `موقف #${job.bayId}` : "بدون موقف")}</span>
-                    <span>{new Date(job.createdAt).toLocaleTimeString("ar-SA")}</span>
+                    <span>{job.bay?.bayName ?? (job.bayId ? t("yard.bayNumber", { n: job.bayId }) : t("yard.noBay"))}</span>
+                    <span>{new Date(job.createdAt).toLocaleTimeString(locale)}</span>
                   </div>
                   <div className="badges">
                     {job.carType && <span className="badge">{job.carType}</span>}
-                    {job.isHighlyDirty && <span className="badge dirty">⚠️ شديد الاتساخ</span>}
-                    {job.pendingSync && <span className="badge pending-sync">⏳ لم تتم المزامنة</span>}
+                    {job.isHighlyDirty && <span className="badge dirty">{t("yard.dirtyBadge")}</span>}
+                    {job.pendingSync && <span className="badge pending-sync">{t("yard.pendingSyncBadge")}</span>}
                   </div>
 
                   {col.key === "queued" && (
                     <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                       <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setUpsellFor(job)}>
-                        🛍️ بيع إضافي
+                        {t("yard.upsellBtn")}
                       </button>
                       <button className="big-btn success" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => startWashing(job)}>
-                        ▶️ بدء الغسيل
+                        {t("yard.startWashingBtn")}
                       </button>
                     </div>
                   )}
@@ -128,7 +140,7 @@ export default function LiveYard() {
                       style={{ padding: "10px 14px", fontSize: 14, marginTop: 8 }}
                       onClick={() => setQualityFor(job)}
                     >
-                      🔍 فحص الجودة والتسليم
+                      {t("yard.qualityCheckBtn")}
                     </button>
                   )}
 
@@ -138,15 +150,15 @@ export default function LiveYard() {
                       style={{ padding: "10px 14px", fontSize: 14, marginTop: 8 }}
                       onClick={() => deliverCar(job)}
                     >
-                      ✅ تسليم للعميل
+                      {t("yard.deliverBtn")}
                     </button>
                   )}
                   {col.key === "quality" && job.status === "quality_check" && (
-                    <div style={{ color: "var(--muted)", fontSize: 13 }}>...جاري الفحص</div>
+                    <div style={{ color: "var(--muted)", fontSize: 13 }}>{t("yard.checkingInProgress")}</div>
                   )}
                 </div>
               ))}
-              {col.jobs.length === 0 && <div style={{ color: "var(--muted)", textAlign: "center", marginTop: 20 }}>لا توجد سيارات</div>}
+              {col.jobs.length === 0 && <div style={{ color: "var(--muted)", textAlign: "center", marginTop: 20 }}>{t("yard.noCars")}</div>}
             </div>
           </div>
         ))}

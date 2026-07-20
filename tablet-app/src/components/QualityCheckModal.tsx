@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { enqueue, flushOutbox, queueJobPatch } from "../lib/sync";
 import { jobRef } from "./UpsellModal";
-
-const AREAS: { id: string; label: string }[] = [
-  { id: "exterior", label: "الخارجي" },
-  { id: "interior", label: "الداخلي" },
-  { id: "tires", label: "الإطارات" },
-  { id: "finishing", label: "اللمسات النهائية" },
-];
 
 type AreaStatus = "ok" | "issue" | "corrected";
 
@@ -24,6 +18,7 @@ export default function QualityCheckModal({
   onClose: () => void;
 }) {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [checklist, setChecklist] = useState<Record<string, AreaStatus>>({
     exterior: "ok",
     interior: "ok",
@@ -36,6 +31,13 @@ export default function QualityCheckModal({
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  const AREAS = [
+    { id: "exterior", label: t("quality.areas.exterior") },
+    { id: "interior", label: t("quality.areas.interior") },
+    { id: "tires", label: t("quality.areas.tires") },
+    { id: "finishing", label: t("quality.areas.finishing") },
+  ];
 
   const lastTap = useRef<Record<string, number>>({});
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -75,7 +77,7 @@ export default function QualityCheckModal({
         });
       }, 1000);
     } catch {
-      alert("تعذر الوصول إلى الميكروفون. يرجى منح الصلاحية اللازمة.");
+      alert(t("quality.micError"));
     }
   }
 
@@ -139,7 +141,7 @@ export default function QualityCheckModal({
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-title">🎙️ فحص الجودة والتسليم — {plateNumber}</div>
+        <div className="modal-title">{t("quality.title", { plate: plateNumber })}</div>
 
         <div className="checklist-grid">
           {AREAS.map((a) => (
@@ -150,9 +152,9 @@ export default function QualityCheckModal({
             >
               {a.label}
               <small>
-                {checklist[a.id] === "ok" && "سليم — اضغط مرتين لتصحيح ميداني"}
-                {checklist[a.id] === "issue" && "يحتاج انتباه"}
-                {checklist[a.id] === "corrected" && "✔ تم التصحيح بالمنشفة"}
+                {checklist[a.id] === "ok" && t("quality.statusOk")}
+                {checklist[a.id] === "issue" && t("quality.statusIssue")}
+                {checklist[a.id] === "corrected" && t("quality.statusCorrected")}
               </small>
             </button>
           ))}
@@ -166,7 +168,11 @@ export default function QualityCheckModal({
             🎙️
           </button>
           <div style={{ color: "var(--muted)" }}>
-            {recording ? `...جاري التسجيل (${seconds}/15 ثانية)` : audioBlob ? "✔ تم تسجيل تقييم العميل" : "اضغط لتسجيل تقييم العميل الصوتي (15 ثانية)"}
+            {recording
+              ? t("quality.micRecording", { s: seconds })
+              : audioBlob
+              ? t("quality.micDone")
+              : t("quality.micHint")}
           </div>
         </div>
 
@@ -175,15 +181,15 @@ export default function QualityCheckModal({
           style={{ width: "100%", marginBottom: 20 }}
           onClick={pressAngry}
         >
-          👎 العميل غاضب — تنبيه فوري للمدير العام
+          {t("quality.angryBtn")}
         </button>
 
         <div className="modal-actions">
           <button className="big-btn secondary" onClick={onClose}>
-            إغلاق
+            {t("common.close")}
           </button>
           <button className="big-btn success" onClick={finish} disabled={submitting}>
-            {submitting ? "...جاري الحفظ" : "إنهاء الفحص والتسليم"}
+            {submitting ? t("common.saving") : t("quality.finishBtn")}
           </button>
         </div>
       </div>

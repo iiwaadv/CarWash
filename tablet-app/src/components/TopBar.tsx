@@ -1,53 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useSync } from "../context/SyncContext";
-import { getGreeting } from "../lib/greeting";
 import MaintenanceModal from "./MaintenanceModal";
 import ShiftClosureWizard from "../pages/ShiftClosureWizard";
 
-const ROLE_LABEL: Record<string, string> = {
-  manager: "مدير",
-  supervisor: "مشرف",
-  washer: "عامل غسيل",
-  detailer: "فني تنشيف",
-};
+function getGreetingKey(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return "topbar.greetingMorning";
+  if (hour >= 12 && hour < 17) return "topbar.greetingAfternoon";
+  if (hour >= 17 && hour < 20) return "topbar.greetingEvening";
+  return "topbar.greetingNight";
+}
 
 export default function TopBar() {
   const { employee, logout } = useAuth();
   const sync = useSync();
+  const { t, i18n } = useTranslation();
   const [showClosure, setShowClosure] = useState(false);
   const [showMaintenance, setShowMaintenance] = useState(false);
-  const [greeting, setGreeting] = useState(getGreeting());
+  const [greetingKey, setGreetingKey] = useState(getGreetingKey());
 
   useEffect(() => {
-    const interval = setInterval(() => setGreeting(getGreeting()), 60000);
+    const interval = setInterval(() => setGreetingKey(getGreetingKey()), 60000);
     return () => clearInterval(interval);
   }, []);
 
   const branchName = useMemo(() => {
     try {
       const branches = JSON.parse(localStorage.getItem("coe_branches") ?? "[]");
-      return branches.find((b: any) => b.id === employee?.branchId)?.name ?? `فرع #${employee?.branchId}`;
+      return branches.find((b: any) => b.id === employee?.branchId)?.name ?? t("topbar.branchFallback", { id: employee?.branchId });
     } catch {
-      return `فرع #${employee?.branchId}`;
+      return t("topbar.branchFallback", { id: employee?.branchId });
     }
-  }, [employee?.branchId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employee?.branchId, i18n.language]);
 
   const dotClass = !sync.isOnline ? "offline" : sync.pendingCount > 0 ? "pending" : "";
   const label = !sync.isOnline
-    ? "غير متصل — العمل محفوظ محلياً"
+    ? t("topbar.offline")
     : sync.pendingCount > 0
-    ? `مزامنة... (${sync.pendingCount})`
-    : "متصل ومتزامن";
+    ? t("topbar.syncing", { n: sync.pendingCount })
+    : t("topbar.synced");
 
   return (
     <div className="topbar">
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <img src="/ejaz-logo.png" alt="إيجاز" className="topbar-logo" />
         <div>
-          <div className="brand">🚗 إيجاز — ساحة العمل</div>
+          <div className="brand">{t("brand.tagline")}</div>
           <div className="who">
-            {greeting} · {employee?.name} ({ROLE_LABEL[employee?.role ?? ""] ?? employee?.role}) · {branchName}
+            {t(greetingKey)} · {employee?.name} ({t(`topbar.roles.${employee?.role}`, employee?.role ?? "")}) · {branchName}
           </div>
         </div>
       </div>
@@ -57,14 +60,21 @@ export default function TopBar() {
           <span className={`sync-dot ${dotClass}`} />
           {label}
         </div>
+        <button
+          className="big-btn secondary lang-toggle"
+          style={{ padding: "10px 14px", fontSize: 14 }}
+          onClick={() => i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar")}
+        >
+          🌐 {t("topbar.language")}
+        </button>
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowMaintenance(true)}>
-          🛠️ بلاغ عطل
+          {t("topbar.reportIncidentBtn")}
         </button>
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowClosure(true)}>
-          🔏 إغلاق الوردية
+          {t("topbar.closeShiftBtn")}
         </button>
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={logout}>
-          خروج
+          {t("topbar.logoutBtn")}
         </button>
       </div>
 

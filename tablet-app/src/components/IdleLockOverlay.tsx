@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 
 export default function IdleLockOverlay() {
   const { employee, isLocked, unlock, logout } = useAuth();
+  const { t } = useTranslation();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +21,7 @@ export default function IdleLockOverlay() {
     if (next.length === 4) {
       const ok = await unlock(next);
       if (!ok) {
-        setError("رمز غير صحيح");
+        setError(t("login.incorrectPin"));
         setPin("");
       } else {
         setError(null);
@@ -30,8 +32,8 @@ export default function IdleLockOverlay() {
   return (
     <div className="overlay-lock">
       <div style={{ fontSize: 48 }}>🔒</div>
-      <div style={{ fontSize: 22, fontWeight: 800 }}>الشاشة مقفلة لحماية بيانات {employee?.name}</div>
-      <div style={{ color: "var(--muted)" }}>أدخل رمزك السري للاستمرار</div>
+      <div style={{ fontSize: 22, fontWeight: 800 }}>{t("idleLock.title", { name: employee?.name })}</div>
+      <div style={{ color: "var(--muted)" }}>{t("idleLock.subtitle")}</div>
       <div className="pin-dots">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className={`pin-dot ${i < pin.length ? "filled" : ""}`} />
@@ -50,7 +52,7 @@ export default function IdleLockOverlay() {
         )}
       </div>
       <button className="big-btn secondary" onClick={logout} style={{ marginTop: 12 }}>
-        تسجيل خروج من هذا الحساب
+        {t("idleLock.logoutBtn")}
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 import { enqueue, flushOutbox } from "../lib/sync";
@@ -8,13 +9,6 @@ interface Service {
   serviceName: string;
   basePrice: number;
 }
-
-const REASONS = [
-  { id: "in_a_hurry", label: "مستعجل" },
-  { id: "too_expensive", label: "السعر غالي" },
-  { id: "old_car", label: "السيارة قديمة" },
-  { id: "loyalty_program", label: "مشترك ولاء" },
-];
 
 export function jobRef(jobId: number | string) {
   return typeof jobId === "number" ? jobId : { __jobRef: jobId };
@@ -30,9 +24,17 @@ export default function UpsellModal({
   onDone: () => void;
 }) {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [service, setService] = useState<Service | null>(null);
   const [step, setStep] = useState<"suggest" | "accept" | "reject">("suggest");
   const [invoiceNo, setInvoiceNo] = useState("");
+
+  const REASONS = [
+    { id: "in_a_hurry", label: t("upsell.reasons.in_a_hurry") },
+    { id: "too_expensive", label: t("upsell.reasons.too_expensive") },
+    { id: "old_car", label: t("upsell.reasons.old_car") },
+    { id: "loyalty_program", label: t("upsell.reasons.loyalty_program") },
+  ];
 
   useEffect(() => {
     if (!token) return;
@@ -68,20 +70,20 @@ export default function UpsellModal({
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-title">🛍️ عرض خدمة إضافية</div>
+        <div className="modal-title">{t("upsell.title")}</div>
 
-        {!service && <div style={{ color: "var(--muted)" }}>لا توجد خدمة مقترحة حالياً لهذا النوع</div>}
+        {!service && <div style={{ color: "var(--muted)" }}>{t("upsell.noSuggestion")}</div>}
 
         {service && step === "suggest" && (
           <>
             <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>{service.serviceName}</div>
-            <div style={{ color: "var(--muted)", marginBottom: 20 }}>{service.basePrice.toFixed(2)} ر.س</div>
+            <div style={{ color: "var(--muted)", marginBottom: 20 }}>{service.basePrice.toFixed(2)} {t("common.riyal")}</div>
             <div className="modal-actions">
               <button className="big-btn danger" onClick={() => setStep("reject")}>
-                تم الرفض
+                {t("upsell.rejected")}
               </button>
               <button className="big-btn success" onClick={() => setStep("accept")}>
-                تم القبول
+                {t("upsell.accepted")}
               </button>
             </div>
           </>
@@ -89,7 +91,7 @@ export default function UpsellModal({
 
         {service && step === "accept" && (
           <>
-            <label className="field-label">رقم الفاتورة الإضافية</label>
+            <label className="field-label">{t("upsell.invoiceLabel")}</label>
             <input
               className="text-input"
               value={invoiceNo}
@@ -99,10 +101,10 @@ export default function UpsellModal({
             />
             <div className="modal-actions">
               <button className="big-btn secondary" onClick={() => setStep("suggest")}>
-                رجوع
+                {t("common.back")}
               </button>
               <button className="big-btn success" onClick={accept} disabled={!invoiceNo.trim()}>
-                تأكيد وتفعيل البونص
+                {t("upsell.confirmBtn")}
               </button>
             </div>
           </>
@@ -110,7 +112,7 @@ export default function UpsellModal({
 
         {service && step === "reject" && (
           <>
-            <div className="field-label">سبب الرفض</div>
+            <div className="field-label">{t("upsell.rejectReasonLabel")}</div>
             <div className="chip-row">
               {REASONS.map((r) => (
                 <button key={r.id} className="chip-btn" style={{ flex: 1 }} onClick={() => reject(r.id)}>
@@ -119,14 +121,14 @@ export default function UpsellModal({
               ))}
             </div>
             <button className="big-btn secondary" onClick={() => setStep("suggest")} style={{ marginTop: 8 }}>
-              رجوع
+              {t("common.back")}
             </button>
           </>
         )}
 
         {!service && (
           <button className="big-btn secondary" onClick={onDone}>
-            تجاوز
+            {t("upsell.skip")}
           </button>
         )}
       </div>

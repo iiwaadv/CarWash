@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import TopBar from "./components/TopBar";
 import Branches from "./pages/Branches";
@@ -11,17 +12,18 @@ import PendingDecisions from "./pages/PendingDecisions";
 import PreventiveMaintenance from "./pages/PreventiveMaintenance";
 
 const TABS = [
-  { id: "overview", label: "🏠 نظرة عامة", component: Overview },
-  { id: "decisions", label: "📥 القرارات المعلقة", component: PendingDecisions },
-  { id: "maintenance", label: "🛠️ الصيانة الوقائية", component: PreventiveMaintenance },
-  { id: "feedback", label: "🎵 تقييمات العملاء", component: FeedbackPlayer },
-  { id: "inventory", label: "📦 المخزون والبيع", component: Inventory },
-  { id: "employees", label: "👥 الطاقم والصلاحيات", component: Employees },
-  { id: "branches", label: "🏢 الفروع", component: Branches },
+  { id: "overview", labelKey: "nav.overview", component: Overview },
+  { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
+  { id: "maintenance", labelKey: "nav.maintenance", component: PreventiveMaintenance },
+  { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
+  { id: "inventory", labelKey: "nav.inventory", component: Inventory },
+  { id: "employees", labelKey: "nav.employees", component: Employees },
+  { id: "branches", labelKey: "nav.branches", component: Branches },
 ];
 
 function Shell() {
   const { manager, logout } = useAuth();
+  const { t } = useTranslation();
   const [tab, setTab] = useState("overview");
 
   if (!manager) return <Login />;
@@ -31,14 +33,18 @@ function Shell() {
   return (
     <div className="app-shell">
       <div className="sidebar">
-        <div className="brand">🚗 نظام إدارة مغاسل إيجاز</div>
-        {TABS.map((t) => (
-          <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
-            {t.label}
+        <div className="brand">{t("brand.nameWithEmoji")}</div>
+        {TABS.map((tabItem) => (
+          <button
+            key={tabItem.id}
+            className={`nav-item ${tab === tabItem.id ? "active" : ""}`}
+            onClick={() => setTab(tabItem.id)}
+          >
+            {t(tabItem.labelKey)}
           </button>
         ))}
         <button className="logout" onClick={logout}>
-          🚪 تسجيل خروج
+          {t("common.logout")}
         </button>
       </div>
       <div className="content-area">

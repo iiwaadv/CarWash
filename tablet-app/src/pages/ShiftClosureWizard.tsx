@@ -1,18 +1,15 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import PhotoCaptureGrid from "../components/PhotoCaptureGrid";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../lib/api";
 import { enqueue } from "../lib/sync";
 
-const CHEMICALS = [
-  { key: "shampoo_nano", label: "شامبو نانو (لتر)" },
-  { key: "wax", label: "واكس (لتر)" },
-  { key: "fog_sanitizer", label: "معقم ضباب (لتر)" },
-  { key: "tire_shine", label: "ملمع إطارات (لتر)" },
-];
+const CHEMICAL_KEYS = ["shampoo_nano", "wax", "fog_sanitizer", "tire_shine"];
 
 export default function ShiftClosureWizard({ onClose }: { onClose: () => void }) {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [storagePhotos, setStoragePhotos] = useState<Blob[]>([]);
   const [yardPhotos, setYardPhotos] = useState<Blob[]>([]);
@@ -23,7 +20,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const steps = ["غرفة العهدة", "الساحة", "الجرد والإغلاق"];
+  const steps: string[] = t("shiftClosure.steps", { returnObjects: true }) as unknown as string[];
 
   async function submit() {
     setError(null);
@@ -43,7 +40,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
           headers: { Authorization: `Bearer ${token}` },
           body: form,
         });
-        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? "فشل الحفظ");
+        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? t("shiftClosure.saveFailed"));
         setResult(await res.json());
       } else {
         await enqueue({
@@ -65,11 +62,11 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
         setResult({
           towelsLost,
           targetMet: null,
-          encouragementMessage: "تم حفظ التقرير محلياً وسيتم رفعه تلقائياً عند استعادة الاتصال. شكراً على جهدك اليوم!",
+          encouragementMessage: t("shiftClosure.offlineMessage"),
         });
       }
     } catch (err: any) {
-      setError(err.message ?? "حدث خطأ غير متوقع");
+      setError(err.message ?? t("shiftClosure.genericError"));
     } finally {
       setSubmitting(false);
     }
@@ -81,16 +78,16 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
       <div className="modal-overlay">
         <div className="modal-card center-col">
           <div style={{ fontSize: 44 }}>{towelsLost > 5 ? "⚠️" : "🎉"}</div>
-          <div style={{ fontSize: 22, fontWeight: 800 }}>تم إغلاق الوردية بنجاح</div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>{t("shiftClosure.successTitle")}</div>
 
           <div className="kv-row" style={{ width: "100%" }}>
-            <span>المناشف المفقودة</span>
+            <span>{t("shiftClosure.towelsLostLabel")}</span>
             <strong>{towelsLost}</strong>
           </div>
           {result.upsellTargetPct != null && (
             <div style={{ width: "100%" }}>
               <div className="kv-row">
-                <span>تحقيق التارقت المالي (بيع إضافي)</span>
+                <span>{t("shiftClosure.upsellTargetLabel")}</span>
                 <strong>{result.upsellTargetPct}%</strong>
               </div>
               <div style={{ height: 14, background: "var(--card)", borderRadius: 8, overflow: "hidden" }}>
@@ -108,7 +105,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
           <div style={{ color: "var(--muted)", marginTop: 12 }}>{result.encouragementMessage}</div>
 
           <button className="big-btn success" style={{ marginTop: 16, width: "100%" }} onClick={onClose}>
-            إغلاق
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -118,7 +115,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-title">🔏 معالج جرد وإغلاق الوردية</div>
+        <div className="modal-title">{t("shiftClosure.title")}</div>
         <div className="wizard-steps">
           {steps.map((_, i) => (
             <div key={i} className={`wizard-step ${i < step ? "done" : i === step ? "active" : ""}`} />
@@ -127,34 +124,34 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
 
         {step === 0 && (
           <>
-            <div className="field-label">صوّر أدراج غرف العهدة والمكانس وهي نظيفة</div>
-            <PhotoCaptureGrid count={2} label="غرفة العهدة" onChange={setStoragePhotos} />
+            <div className="field-label">{t("shiftClosure.step0Label")}</div>
+            <PhotoCaptureGrid count={2} label={t("shiftClosure.step0Capture")} onChange={setStoragePhotos} />
           </>
         )}
 
         {step === 1 && (
           <>
-            <div className="field-label">صوّر الساحة والبايكات وغرف الانتظار خالية ونظيفة</div>
-            <PhotoCaptureGrid count={2} label="الساحة" onChange={setYardPhotos} />
+            <div className="field-label">{t("shiftClosure.step1Label")}</div>
+            <PhotoCaptureGrid count={2} label={t("shiftClosure.step1Capture")} onChange={setYardPhotos} />
           </>
         )}
 
         {step === 2 && (
           <>
-            <div className="field-label">اللترات المتبقية من المواد الكيميائية</div>
-            {CHEMICALS.map((c) => (
+            <div className="field-label">{t("shiftClosure.chemicalsLabel")}</div>
+            {CHEMICAL_KEYS.map((key) => (
               <input
-                key={c.key}
+                key={key}
                 className="text-input"
-                placeholder={c.label}
+                placeholder={t(`shiftClosure.chemicals.${key}`)}
                 inputMode="decimal"
-                value={chemicals[c.key] ?? ""}
-                onChange={(e) => setChemicals((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                value={chemicals[key] ?? ""}
+                onChange={(e) => setChemicals((prev) => ({ ...prev, [key]: e.target.value }))}
               />
             ))}
-            <div className="field-label">عدد المناشف المستلمة بداية الوردية</div>
+            <div className="field-label">{t("shiftClosure.towelsStartLabel")}</div>
             <input className="text-input" inputMode="numeric" value={towelsStart} onChange={(e) => setTowelsStart(e.target.value)} />
-            <div className="field-label">عدد المناشف المجمّعة نهاية الوردية</div>
+            <div className="field-label">{t("shiftClosure.towelsEndLabel")}</div>
             <input className="text-input" inputMode="numeric" value={towelsEnd} onChange={(e) => setTowelsEnd(e.target.value)} />
           </>
         )}
@@ -166,7 +163,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
             className="big-btn secondary"
             onClick={() => (step === 0 ? onClose() : setStep((s) => s - 1))}
           >
-            {step === 0 ? "إلغاء" : "السابق"}
+            {step === 0 ? t("common.cancel") : t("common.back")}
           </button>
           {step < 2 ? (
             <button
@@ -174,11 +171,11 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
               disabled={step === 0 ? storagePhotos.length === 0 : yardPhotos.length === 0}
               onClick={() => setStep((s) => s + 1)}
             >
-              التالي
+              {t("common.next")}
             </button>
           ) : (
             <button className="big-btn success" disabled={submitting} onClick={submit}>
-              {submitting ? "...جاري الحفظ" : "إنهاء وإغلاق الوردية"}
+              {submitting ? t("common.saving") : t("shiftClosure.finishBtn")}
             </button>
           )}
         </div>
