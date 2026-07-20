@@ -2,7 +2,10 @@ import fs from "fs";
 import multer from "multer";
 import path from "path";
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "./uploads";
+// Vercel's serverless filesystem is read-only except for /tmp, and /tmp is
+// wiped between cold starts — fine for a quick demo, but replace with real
+// object storage (e.g. Vercel Blob / S3) before relying on this in production.
+const UPLOAD_DIR = process.env.UPLOAD_DIR ?? (process.env.VERCEL ? "/tmp/uploads" : "./uploads");
 
 for (const sub of ["photos", "audio"]) {
   const dir = path.join(UPLOAD_DIR, sub);

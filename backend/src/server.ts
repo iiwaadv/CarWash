@@ -20,7 +20,7 @@ import upsellingRoutes from "./routes/upselling.routes";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
-const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "./uploads";
+const UPLOAD_DIR = process.env.UPLOAD_DIR ?? (process.env.VERCEL ? "/tmp/uploads" : "./uploads");
 
 app.use(cors());
 app.use(express.json());
@@ -53,6 +53,13 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(err?.status ?? 500).json({ error: err?.message ?? "Internal server error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚗 CarWash Ops Engine API running on http://localhost:${PORT}`);
-});
+// On Vercel the app is invoked as a serverless function (see api/index.ts)
+// and must not bind to a port itself; everywhere else (local dev, other
+// hosts) it runs as a normal long-lived HTTP server.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚗 CarWash Ops Engine API running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

@@ -13,6 +13,12 @@ Thumbs.db
 *.zip.bz2
 مشاريعي/
 
+# Vercel CLI / integration-generated local files
+.vercel
+.env.vercel
+.agents/
+skills-lock.json
+
 # Backend runtime data (SQLite DB + uploaded files) — never commit real data
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
