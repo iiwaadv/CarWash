@@ -15,11 +15,13 @@ import PendingDecisions from "./pages/PendingDecisions";
 import PreventiveMaintenance from "./pages/PreventiveMaintenance";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import SearchCenter from "./pages/SearchCenter";
 import Shifts from "./pages/Shifts";
 import Tasks from "./pages/Tasks";
 
 const TABS = [
   { id: "overview", labelKey: "nav.overview", component: Overview },
+  { id: "search", labelKey: "nav.search", component: SearchCenter },
   { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
   { id: "tasks", labelKey: "nav.tasks", component: Tasks },
   { id: "shifts", labelKey: "nav.shifts", component: Shifts },

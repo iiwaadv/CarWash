@@ -23,6 +23,8 @@ import salesTargetsRoutes from "./routes/salesTargets.routes";
 import inventoryRoutes from "./routes/inventory.routes";
 import reportsRoutes from "./routes/reports.routes";
 import shiftsRoutes from "./routes/shifts.routes";
+import searchRoutes from "./routes/search.routes";
+import customersRoutes from "./routes/customers.routes";
 import upsellingRoutes from "./routes/upselling.routes";
 
 const app = express();
@@ -52,6 +54,8 @@ app.use("/api/sales-targets", salesTargetsRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/shifts", shiftsRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/customers", customersRoutes);
 app.use("/api/cleanliness", cleanlinessRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/maintenance-schedules", maintenanceSchedulesRoutes);
