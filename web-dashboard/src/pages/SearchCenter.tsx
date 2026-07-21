@@ -130,11 +130,11 @@ export default function SearchCenter() {
             placeholder={t("search.placeholder")}
             style={{ flex: 1, minWidth: 220 }}
           />
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn" disabled={loading}>
             {loading ? t("common.loading") : t("search.submit")}
           </button>
         </form>
-        <div className="muted" style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8, opacity: 0.75 }}>
           {t("search.hint")}
         </div>
       </div>
@@ -166,7 +166,7 @@ export default function SearchCenter() {
                     <td>{j.status}</td>
                     <td>{new Date(j.createdAt).toLocaleString(locale)}</td>
                     <td>
-                      <button type="button" className="btn-secondary" onClick={() => openCenter({ plate: j.plateNumber })}>
+                      <button type="button" className="btn secondary" onClick={() => openCenter({ plate: j.plateNumber })}>
                         {t("search.openFile")}
                       </button>
                     </td>
