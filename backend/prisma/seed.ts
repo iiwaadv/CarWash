@@ -17,15 +17,27 @@ async function main() {
     data: { name: "فرع الفيصلية", status: "open" },
   });
 
-  const [bayA1, bayA2, bayA3] = await Promise.all([
-    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 1 - عادي", bayType: "normal" } }),
-    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 2 - VIP", bayType: "vip" } }),
-    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 3 - عادي", bayType: "normal" } }),
+  const [bayA1, bayA2, bayA3, bayA4] = await Promise.all([
+    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 1", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 2", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 3", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchA.id, bayName: "موقف 4", bayType: "normal" } }),
   ]);
-  const [bayB1, bayB2] = await Promise.all([
-    prisma.bay.create({ data: { branchId: branchB.id, bayName: "موقف 1 - عادي", bayType: "normal" } }),
-    prisma.bay.create({ data: { branchId: branchB.id, bayName: "موقف 2 - VIP", bayType: "vip" } }),
+  const [bayB1, bayB2, bayB3] = await Promise.all([
+    prisma.bay.create({ data: { branchId: branchB.id, bayName: "موقف 1", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchB.id, bayName: "موقف 2", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchB.id, bayName: "موقف 3", bayType: "normal" } }),
   ]);
+  const [bayC1, bayC2, bayC3] = await Promise.all([
+    prisma.bay.create({ data: { branchId: branchC.id, bayName: "موقف 1", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchC.id, bayName: "موقف 2", bayType: "normal" } }),
+    prisma.bay.create({ data: { branchId: branchC.id, bayName: "موقف 3", bayType: "normal" } }),
+  ]);
+  void bayA4;
+  void bayB3;
+  void bayC1;
+  void bayC2;
+  void bayC3;
 
   const manager = await prisma.employee.create({
     data: {

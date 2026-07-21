@@ -3,7 +3,7 @@ import { z } from "zod";
 import { CAR_TYPE, JOB_STATUS, zFormBoolean } from "../constants/enums";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
-import { publicUrl, uploadPhotos } from "../middleware/upload";
+import { persistUploads, uploadPhotos } from "../middleware/upload";
 
 const router = Router();
 
@@ -80,8 +80,9 @@ router.post("/", requireAuth, uploadPhotos.array("photos", 4), async (req, res) 
     },
   });
 
-  const photosJson = files.map((f, i) => ({
-    url: publicUrl("photos", f.filename),
+  const urls = await persistUploads(files, "photos");
+  const photosJson = urls.map((url, i) => ({
+    url,
     angle: i + 1,
     takenAt: new Date().toISOString(),
     watermark: `COE • ${parsed.data.plateNumber} • ${new Date().toLocaleString("ar-SA")}`,

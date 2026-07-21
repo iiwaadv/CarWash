@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
-import { publicUrl, uploadPhotos } from "../middleware/upload";
+import { persistUploads, uploadPhotos } from "../middleware/upload";
 
 const router = Router();
 const INTERVAL_HOURS = Number(process.env.CLEANLINESS_INTERVAL_HOURS ?? 4);
@@ -44,12 +44,14 @@ router.post("/:id/complete", requireAuth, uploadPhotos.array("photos", 6), async
 
   const wasLocked = Date.now() - existing.dueAt.getTime() > LOCK_GRACE_MINUTES * 60 * 1000;
 
+  const photoUrls = await persistUploads(files, "photos");
+
   await prisma.cleanlinessCheck.update({
     where: { id },
     data: {
       completedAt: new Date(),
       wasLocked,
-      photosJson: JSON.stringify(files.map((f) => publicUrl("photos", f.filename))),
+      photosJson: JSON.stringify(photoUrls),
     },
   });
 

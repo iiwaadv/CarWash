@@ -121,10 +121,13 @@ model BayCrewAssignment {
 // 5. الخدمات وقواعد البيع الإضافي
 // ---------------------------------------------------------------------------
 model Service {
-  id               Int     @id @default(autoincrement()) @map("service_id")
-  serviceName      String  @map("service_name")
-  basePrice        Float   @map("base_price")
-  suggestedTrigger String? @map("suggested_trigger") // e.g. car_type=large
+  id                   Int     @id @default(autoincrement()) @map("service_id")
+  serviceName          String  @map("service_name")
+  basePrice            Float   @map("base_price")
+  suggestedTrigger     String? @map("suggested_trigger") // e.g. car_type=large
+  quantity             Int     @default(1) // عدد مرات/وحدات الخدمة المعروضة
+  linkedProductIdsJson String? @map("linked_product_ids_json") // JSON number[] من InventoryItem
+  targetBranchIdsJson  String? @map("target_branch_ids_json") // JSON number[] من Branch
 
   upsellingLogs UpsellingLog[]
 

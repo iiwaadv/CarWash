@@ -41,6 +41,7 @@ export const ar = {
     synced: "متصل ومتزامن",
     tasksBtn: "📋 المهام",
     reportIncidentBtn: "🛠️ بلاغ عطل",
+    pmBtn: "🛠️ صيانة وقائية",
     openShiftBtn: "🌅 فتح الوردية",
     closeShiftBtn: "🔏 إغلاق الوردية",
     logoutBtn: "خروج",
@@ -214,6 +215,14 @@ export const ar = {
     createBtn: "إضافة المهمة",
     empty: "لا توجد مهام في هذا التصنيف",
     genericError: "حدث خطأ غير متوقع",
+  },
+  pmReminders: {
+    title: "🛠️ تذكيرات الصيانة الوقائية",
+    subtitle: "المعدات المتأخرة أو المستحقة خلال أسبوع",
+    empty: "لا توجد صيانة مستحقة قريباً 🎉",
+    overdueBy: "متأخرة {{n}} يوم",
+    dueIn: "مستحقة بعد {{n}} يوم",
+    markDone: "✅ تمت الصيانة",
   },
   photoGrid: {
     angle: "زاوية {{n}}",

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zFormBoolean } from "../constants/enums";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
-import { publicUrl, uploadAudio } from "../middleware/upload";
+import { persistUpload, uploadAudio } from "../middleware/upload";
 import { sendUrgentAlert } from "../utils/alerts";
 
 const router = Router();
@@ -23,10 +23,12 @@ router.post("/", requireAuth, uploadAudio.single("audio"), async (req, res) => {
     return res.status(400).json({ error: "ملف صوتي مطلوب" });
   }
 
+  const voiceRecUrl = req.file ? await persistUpload(req.file, "audio") : null;
+
   const feedback = await prisma.customerFeedback.create({
     data: {
       jobId: parsed.data.jobId,
-      voiceRecUrl: req.file ? publicUrl("audio", req.file.filename) : null,
+      voiceRecUrl,
       isCustomerFurious: parsed.data.isCustomerFurious ?? false,
     },
     include: { job: true },

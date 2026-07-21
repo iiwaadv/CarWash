@@ -41,6 +41,7 @@ export const en = {
     synced: "Online & synced",
     tasksBtn: "📋 Tasks",
     reportIncidentBtn: "🛠️ Report incident",
+    pmBtn: "🛠️ Preventive",
     openShiftBtn: "🌅 Open shift",
     closeShiftBtn: "🔏 Close shift",
     logoutBtn: "Logout",
@@ -214,6 +215,14 @@ export const en = {
     createBtn: "Add task",
     empty: "No tasks in this filter",
     genericError: "An unexpected error occurred",
+  },
+  pmReminders: {
+    title: "🛠️ Preventive maintenance reminders",
+    subtitle: "Overdue or due within a week",
+    empty: "No maintenance due soon 🎉",
+    overdueBy: "Overdue by {{n}} days",
+    dueIn: "Due in {{n}} days",
+    markDone: "✅ Mark completed",
   },
   photoGrid: {
     angle: "Angle {{n}}",

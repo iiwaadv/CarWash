@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
-import { publicUrl, uploadPhotos } from "../middleware/upload";
+import { persistUploads, uploadPhotos } from "../middleware/upload";
 import { isWithinShiftWindow } from "../utils/shiftWindow";
 
 const router = Router();
@@ -63,6 +63,11 @@ router.post(
     const upsellAchievedPct =
       upsellLogs.length > 0 ? Math.round((accepted / upsellLogs.length) * 1000) / 10 : 0;
 
+    const [storageUrls, yardUrls] = await Promise.all([
+      persistUploads(storagePhotos, "photos"),
+      persistUploads(yardPhotos, "photos"),
+    ]);
+
     const report = await prisma.shiftInventoryReport.create({
       data: {
         branchId,
@@ -71,8 +76,8 @@ router.post(
         chemicalsRemainingJson: parsed.data.chemicalsRemainingJson,
         towelsReceivedStart: parsed.data.towelsReceivedStart,
         towelsCollectedEnd: parsed.data.towelsCollectedEnd,
-        storageRoomPhotosJson: JSON.stringify(storagePhotos.map((f) => publicUrl("photos", f.filename))),
-        yardPhotosJson: JSON.stringify(yardPhotos.map((f) => publicUrl("photos", f.filename))),
+        storageRoomPhotosJson: JSON.stringify(storageUrls),
+        yardPhotosJson: JSON.stringify(yardUrls),
         upsellTargetPct: upsellAchievedPct,
       },
     });

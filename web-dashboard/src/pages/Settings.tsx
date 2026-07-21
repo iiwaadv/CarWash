@@ -16,11 +16,29 @@ interface Bay {
   branch?: { name: string };
 }
 
+interface InventoryItem {
+  id: number;
+  name: string;
+  unit: string;
+}
+
 interface Service {
   id: number;
   serviceName: string;
   basePrice: number;
   suggestedTrigger: string | null;
+  quantity: number;
+  linkedProductIdsJson: string | null;
+  targetBranchIdsJson: string | null;
+}
+
+function parseIds(raw: string | null): number[] {
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
 }
 
 export default function Settings() {
@@ -29,22 +47,28 @@ export default function Settings() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [bays, setBays] = useState<Bay[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [products, setProducts] = useState<InventoryItem[]>([]);
   const [bayName, setBayName] = useState("");
   const [bayBranchId, setBayBranchId] = useState<number | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const [trigger, setTrigger] = useState("");
+  const [linkedProductIds, setLinkedProductIds] = useState<number[]>([]);
+  const [targetBranchIds, setTargetBranchIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    const [b, bayData, svc] = await Promise.all([
+    const [b, bayData, svc, items] = await Promise.all([
       apiFetch("/api/branches", token),
       apiFetch("/api/bays", token),
       apiFetch("/api/services", token),
+      apiFetch("/api/inventory/items", token).catch(() => []),
     ]);
     setBranches(b);
     setBays(bayData);
     setServices(svc);
+    setProducts(items);
     if (b.length && bayBranchId === null) setBayBranchId(b[0].id);
   }
 
@@ -63,6 +87,10 @@ export default function Settings() {
     }
     return Array.from(map.entries());
   }, [bays]);
+
+  function toggleId(list: number[], id: number, setter: (v: number[]) => void) {
+    setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  }
 
   async function addBay(e: React.FormEvent) {
     e.preventDefault();
@@ -99,10 +127,16 @@ export default function Settings() {
         serviceName: serviceName.trim(),
         basePrice: Number(basePrice),
         suggestedTrigger: trigger || undefined,
+        quantity: Number(quantity) || 1,
+        linkedProductIds,
+        targetBranchIds,
       });
       setServiceName("");
       setBasePrice("");
+      setQuantity("1");
       setTrigger("");
+      setLinkedProductIds([]);
+      setTargetBranchIds([]);
       load();
     } catch (err: any) {
       setError(err.message);
@@ -125,6 +159,18 @@ export default function Settings() {
     if (!confirm(t("settings.deleteServiceConfirm", { name: svc.serviceName }))) return;
     await apiFetch(`/api/services/${svc.id}`, token, { method: "DELETE" });
     load();
+  }
+
+  function productNames(svc: Service) {
+    const ids = parseIds(svc.linkedProductIdsJson);
+    if (!ids.length) return "—";
+    return ids.map((id) => products.find((p) => p.id === id)?.name ?? `#${id}`).join("، ");
+  }
+
+  function branchNames(svc: Service) {
+    const ids = parseIds(svc.targetBranchIdsJson);
+    if (!ids.length) return t("settings.allBranches");
+    return ids.map((id) => branches.find((b) => b.id === id)?.name ?? `#${id}`).join("، ");
   }
 
   return (
@@ -154,7 +200,9 @@ export default function Settings() {
         </form>
         {baysByBranch.map(([branchName, list]) => (
           <div key={branchName} style={{ marginTop: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>{branchName}</div>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>
+              {branchName} ({list.length})
+            </div>
             <table>
               <thead>
                 <tr>
@@ -201,20 +249,73 @@ export default function Settings() {
               step="0.01"
               required
             />
+            <input
+              placeholder={t("settings.quantityPlaceholder")}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              type="number"
+              min="1"
+              style={{ width: 90 }}
+            />
             <select value={trigger} onChange={(e) => setTrigger(e.target.value)}>
               <option value="">{t("settings.triggerNone")}</option>
               <option value="small">{t("settings.triggerSmall")}</option>
               <option value="medium">{t("settings.triggerMedium")}</option>
               <option value="large">{t("settings.triggerLarge")}</option>
             </select>
-            <button className="btn">{t("common.add")}</button>
           </div>
+
+          <div style={{ marginTop: 10 }}>
+            <div className="field-label" style={{ fontWeight: 700, marginBottom: 6 }}>
+              {t("settings.linkedProducts")}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {products.map((p) => (
+                <label key={p.id} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={linkedProductIds.includes(p.id)}
+                    onChange={() => toggleId(linkedProductIds, p.id, setLinkedProductIds)}
+                  />
+                  {p.name}
+                </label>
+              ))}
+              {products.length === 0 && (
+                <span style={{ color: "var(--muted)", fontSize: 13 }}>{t("settings.noProductsYet")}</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10, marginBottom: 12 }}>
+            <div className="field-label" style={{ fontWeight: 700, marginBottom: 6 }}>
+              {t("settings.targetBranches")}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {branches.map((b) => (
+                <label key={b.id} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={targetBranchIds.includes(b.id)}
+                    onChange={() => toggleId(targetBranchIds, b.id, setTargetBranchIds)}
+                  />
+                  {b.name}
+                </label>
+              ))}
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>{t("settings.targetBranchesHint")}</div>
+          </div>
+
+          <button className="btn">{t("common.add")}</button>
         </form>
-        <table>
+
+        <table style={{ marginTop: 16 }}>
           <thead>
             <tr>
               <th>{t("settings.colService")}</th>
               <th>{t("settings.colPrice")}</th>
+              <th>{t("settings.colQuantity")}</th>
+              <th>{t("settings.colProducts")}</th>
+              <th>{t("settings.colBranches")}</th>
               <th>{t("settings.colTrigger")}</th>
               <th>{t("settings.colActions")}</th>
             </tr>
@@ -226,6 +327,9 @@ export default function Settings() {
                 <td>
                   {svc.basePrice.toFixed(2)} {t("common.riyal")}
                 </td>
+                <td>{svc.quantity ?? 1}</td>
+                <td>{productNames(svc)}</td>
+                <td>{branchNames(svc)}</td>
                 <td>{svc.suggestedTrigger ?? "—"}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button className="btn secondary" onClick={() => editService(svc)}>

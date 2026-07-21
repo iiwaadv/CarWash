@@ -3,7 +3,7 @@ import { z } from "zod";
 import { INCIDENT_SEVERITY, INCIDENT_TYPE } from "../constants/enums";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { publicUrl, uploadPhotos } from "../middleware/upload";
+import { persistUploads, uploadPhotos } from "../middleware/upload";
 import { sendUrgentAlert } from "../utils/alerts";
 
 const router = Router();
@@ -26,6 +26,7 @@ router.post("/", requireAuth, uploadPhotos.array("photos", 6), async (req, res) 
   const parsed = fieldsSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
   const files = (req.files as Express.Multer.File[]) ?? [];
+  const photoUrls = await persistUploads(files, "photos");
 
   const incident = await prisma.maintenanceIncident.create({
     data: {
@@ -40,7 +41,7 @@ router.post("/", requireAuth, uploadPhotos.array("photos", 6), async (req, res) 
       compensationPaid: parsed.data.compensationPaid ?? 0,
       proposedDeduction: parsed.data.proposedDeduction ?? 0,
       repairCost: parsed.data.repairCost ?? 0,
-      photosJson: JSON.stringify(files.map((f) => publicUrl("photos", f.filename))),
+      photosJson: JSON.stringify(photoUrls),
       status: "pending_approval",
     },
   });

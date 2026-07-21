@@ -62,7 +62,11 @@ export default function FeedbackPlayer() {
             </div>
 
             {f.voiceRecUrl ? (
-              <audio controls src={`${API_BASE}${f.voiceRecUrl}`} style={{ flex: 1 }} />
+              <audio
+                controls
+                src={f.voiceRecUrl.startsWith("http") ? f.voiceRecUrl : `${API_BASE}${f.voiceRecUrl}`}
+                style={{ flex: 1 }}
+              />
             ) : (
               <div style={{ color: "var(--muted)", flex: 1 }}>{t("feedback.noRecording")}</div>
             )}
