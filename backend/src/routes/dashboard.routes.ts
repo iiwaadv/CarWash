@@ -9,7 +9,11 @@ const router = Router();
 router.get("/pending-decisions", requireAuth, requireRole("manager"), async (_req, res) => {
   const incidents = await prisma.maintenanceIncident.findMany({
     where: { status: "pending_approval" },
-    include: { branch: { select: { name: true } } },
+    include: {
+      branch: { select: { name: true } },
+      bay: { select: { id: true, bayName: true } },
+      equipment: { select: { id: true, name: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
   res.json(incidents);

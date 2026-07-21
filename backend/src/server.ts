@@ -18,6 +18,7 @@ import servicesRoutes from "./routes/services.routes";
 import shiftInventoryRoutes from "./routes/shiftInventory.routes";
 import shiftOpeningsRoutes from "./routes/shiftOpenings.routes";
 import tasksRoutes from "./routes/tasks.routes";
+import bayEquipmentRoutes from "./routes/bayEquipment.routes";
 import upsellingRoutes from "./routes/upselling.routes";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/shift-inventory", shiftInventoryRoutes);
 app.use("/api/shift-openings", shiftOpeningsRoutes);
 app.use("/api/tasks", tasksRoutes);
+app.use("/api/bay-equipment", bayEquipmentRoutes);
 app.use("/api/cleanliness", cleanlinessRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/maintenance-schedules", maintenanceSchedulesRoutes);

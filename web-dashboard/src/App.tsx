@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import TopBar from "./components/TopBar";
 import Branches from "./pages/Branches";
 import Employees from "./pages/Employees";
+import Equipment from "./pages/Equipment";
 import FeedbackPlayer from "./pages/FeedbackPlayer";
 import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
@@ -17,6 +18,7 @@ const TABS = [
   { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
   { id: "tasks", labelKey: "nav.tasks", component: Tasks },
   { id: "maintenance", labelKey: "nav.maintenance", component: PreventiveMaintenance },
+  { id: "equipment", labelKey: "nav.equipment", component: Equipment },
   { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
   { id: "inventory", labelKey: "nav.inventory", component: Inventory },
   { id: "employees", labelKey: "nav.employees", component: Employees },

@@ -1,14 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../lib/api";
 import { enqueue, flushOutbox } from "../lib/sync";
 import PhotoCaptureGrid from "./PhotoCaptureGrid";
 
+interface Bay {
+  id: number;
+  bayName: string;
+}
+
+interface EquipmentOption {
+  id: number;
+  name: string;
+}
+
 export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
-  const { token } = useAuth();
+  const { token, employee } = useAuth();
   const { t } = useTranslation();
   const [type, setType] = useState("equipment_breakdown");
   const [severity, setSeverity] = useState("partial_slow");
+  const [scope, setScope] = useState<"bay" | "general">("bay");
+  const [bays, setBays] = useState<Bay[]>([]);
+  const [bayId, setBayId] = useState<string>("");
+  const [equipmentOptions, setEquipmentOptions] = useState<EquipmentOption[]>([]);
+  const [equipmentId, setEquipmentId] = useState<string>("");
+  const [breakdownType, setBreakdownType] = useState("");
   const [description, setDescription] = useState("");
   const [compensationPaid, setCompensationPaid] = useState("");
   const [proposedDeduction, setProposedDeduction] = useState("");
@@ -25,6 +42,19 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
     { id: "partial_slow", label: t("maintenance.severities.partial_slow") },
   ];
 
+  useEffect(() => {
+    if (!token || !employee?.branchId) return;
+    apiFetch(`/api/bays?branchId=${employee.branchId}`, token).then(setBays).catch(() => {});
+  }, [token, employee?.branchId]);
+
+  useEffect(() => {
+    if (!token || !bayId) {
+      setEquipmentOptions([]);
+      return;
+    }
+    apiFetch(`/api/bay-equipment?bayId=${bayId}`, token).then(setEquipmentOptions).catch(() => {});
+  }, [token, bayId]);
+
   async function submit() {
     setSubmitting(true);
     try {
@@ -35,6 +65,9 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
         fields: {
           type,
           severity: type === "equipment_breakdown" ? severity : undefined,
+          bayId: type === "equipment_breakdown" && scope === "bay" && bayId ? bayId : undefined,
+          equipmentId: type === "equipment_breakdown" && scope === "bay" && equipmentId ? equipmentId : undefined,
+          breakdownType: type === "equipment_breakdown" ? breakdownType || undefined : undefined,
           description,
           compensationPaid: type === "customer_car_damage" ? compensationPaid || "0" : "0",
           proposedDeduction: type === "customer_car_damage" ? proposedDeduction || "0" : "0",
@@ -89,6 +122,59 @@ export default function MaintenanceModal({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
+
+            <div className="field-label">{t("maintenance.scopeLabel")}</div>
+            <div className="chip-row">
+              <button className={`chip-btn ${scope === "bay" ? "active" : ""}`} onClick={() => setScope("bay")}>
+                {t("maintenance.scopeBay")}
+              </button>
+              <button className={`chip-btn ${scope === "general" ? "active" : ""}`} onClick={() => setScope("general")}>
+                {t("maintenance.scopeGeneral")}
+              </button>
+            </div>
+
+            {scope === "bay" && (
+              <>
+                <div className="field-label">{t("maintenance.bayLabel")}</div>
+                <select
+                  className="text-input"
+                  value={bayId}
+                  onChange={(e) => {
+                    setBayId(e.target.value);
+                    setEquipmentId("");
+                  }}
+                >
+                  <option value="">{t("maintenance.selectBay")}</option>
+                  {bays.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.bayName}
+                    </option>
+                  ))}
+                </select>
+
+                {bayId && (
+                  <>
+                    <div className="field-label">{t("maintenance.equipmentLabel")}</div>
+                    <select className="text-input" value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)}>
+                      <option value="">{t("maintenance.selectEquipment")}</option>
+                      {equipmentOptions.map((eq) => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </>
+            )}
+
+            <label className="field-label">{t("maintenance.breakdownTypeLabel")}</label>
+            <input
+              className="text-input"
+              placeholder={t("maintenance.breakdownTypePlaceholder")}
+              value={breakdownType}
+              onChange={(e) => setBreakdownType(e.target.value)}
+            />
           </>
         )}
 

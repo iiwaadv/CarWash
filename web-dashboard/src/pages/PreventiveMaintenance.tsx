@@ -95,6 +95,11 @@ export default function PreventiveMaintenance() {
   return (
     <div>
       <div className="page-title">{t("maintenance.title")}</div>
+      <div className="section-card" style={{ marginBottom: 12 }}>
+        <div style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.6 }}>
+          {t("maintenance.helpText")}
+        </div>
+      </div>
 
       <div className="kpi-grid">
         <div className="kpi-card">

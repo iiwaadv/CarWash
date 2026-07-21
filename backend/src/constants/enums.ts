@@ -26,7 +26,14 @@ export const TASK_STATUS = ["new", "acknowledged", "in_progress", "done"] as con
 export const TASK_PRIORITY = ["normal", "urgent"] as const;
 export const INCIDENT_TYPE = ["equipment_breakdown", "customer_car_damage"] as const;
 export const INCIDENT_SEVERITY = ["critical_stop", "partial_slow"] as const;
-export const INCIDENT_STATUS = ["pending_approval", "approved", "rejected"] as const;
+export const INCIDENT_STATUS = [
+  "pending_approval",
+  "approved",
+  "rejected",
+  "received",
+  "in_progress",
+  "completed",
+] as const;
 export const CHECKLIST_AREAS = ["exterior", "interior", "tires", "finishing"] as const;
 
 // z.coerce.boolean() treats the *string* "false" as truthy (Boolean("false") === true),
