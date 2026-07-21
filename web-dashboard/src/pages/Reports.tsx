@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../lib/api";
+import { apiFetch, API_BASE } from "../lib/api";
 
 interface Branch {
   id: number;
@@ -26,6 +26,8 @@ interface ReportSummary {
     shiftClosures: number;
     shiftOpenings: number;
     incidents: number;
+    occupancyPct?: number;
+    avgCycleMinutes?: number | null;
   };
   byBranch: Array<{
     branchId: number;
@@ -72,6 +74,7 @@ export default function Reports() {
   const [to, setTo] = useState(() => toInputDate(new Date()));
   const [data, setData] = useState<ReportSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/branches", token).then(setBranches);
@@ -94,6 +97,30 @@ export default function Reports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const qs = new URLSearchParams({ from, to });
+      if (branchId) qs.set("branchId", branchId);
+      const res = await fetch(`${API_BASE}/api/reports/export?${qs}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Bypass-Tunnel-Reminder": "true",
+        },
+      });
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `report-${from}-${to}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const k = data?.kpis;
 
   return (
@@ -114,6 +141,9 @@ export default function Reports() {
           </select>
           <button className="btn" onClick={load} disabled={loading}>
             {loading ? t("common.loading") : t("reports.refresh")}
+          </button>
+          <button className="btn secondary" onClick={exportCsv} disabled={exporting}>
+            {exporting ? t("common.loading") : t("reports.exportCsv")}
           </button>
         </div>
       </div>
@@ -160,6 +190,18 @@ export default function Reports() {
             <div className="value">{k.shiftClosures}</div>
             <div className="label">{t("reports.shiftClosures")}</div>
           </div>
+          {k.occupancyPct != null && (
+            <div className="kpi-card">
+              <div className="value">{k.occupancyPct}%</div>
+              <div className="label">{t("reports.occupancyPct")}</div>
+            </div>
+          )}
+          {k.avgCycleMinutes != null && (
+            <div className="kpi-card">
+              <div className="value">{k.avgCycleMinutes}</div>
+              <div className="label">{t("reports.avgCycleMinutes")}</div>
+            </div>
+          )}
         </div>
       )}
 

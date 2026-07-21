@@ -21,9 +21,37 @@ interface EquipmentRow {
   isActive: boolean;
 }
 
+interface EquipmentDetail {
+  equipment: {
+    id: number;
+    name: string;
+    serialNumber: string | null;
+    warrantyUntil: string | null;
+    notes: string | null;
+    bay: { bayName: string; branch: { name: string } };
+    incidents: Array<{
+      id: number;
+      type: string;
+      description: string;
+      status: string;
+      repairCost: number;
+      createdAt: string;
+      branch: { name: string };
+    }>;
+  };
+  summary: {
+    incidentCount: number;
+    totalRepairCost: number;
+    totalSpareCost: number;
+    totalLaborCost: number;
+    byStatus: Record<string, number>;
+  };
+}
+
 export default function Equipment() {
   const { token } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
   const [branches, setBranches] = useState<Branch[]>([]);
   const [bays, setBays] = useState<Bay[]>([]);
   const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
@@ -33,6 +61,8 @@ export default function Equipment() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [detail, setDetail] = useState<EquipmentDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   async function load(currentBranchId: number | null) {
     const b = await apiFetch("/api/branches", token);
@@ -50,6 +80,16 @@ export default function Equipment() {
     load(branchId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, branchId]);
+
+  async function openDetail(id: number) {
+    setDetailLoading(true);
+    try {
+      const data = await apiFetch(`/api/bay-equipment/${id}`, token);
+      setDetail(data);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   async function addEquipment(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +119,7 @@ export default function Equipment() {
   async function removeEquipment(id: number) {
     if (!confirm(t("equipment.confirmDelete"))) return;
     await apiFetch(`/api/bay-equipment/${id}`, token, { method: "DELETE" });
+    if (detail?.equipment.id === id) setDetail(null);
     load(branchId);
   }
 
@@ -166,7 +207,10 @@ export default function Equipment() {
                       eq.name
                     )}
                   </td>
-                  <td style={{ display: "flex", gap: 6 }}>
+                  <td style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button className="btn secondary" disabled={detailLoading} onClick={() => openDetail(eq.id)}>
+                      {t("equipment.assetFile")}
+                    </button>
                     {editingId !== eq.id && (
                       <button className="btn secondary" onClick={() => startEdit(eq)}>
                         {t("employees.editName")}
@@ -189,6 +233,81 @@ export default function Equipment() {
           </tbody>
         </table>
       </div>
+
+      {detail && (
+        <div className="section-card">
+          <div className="section-title">
+            {t("equipment.detailTitle")}: {detail.equipment.name}
+            <button className="btn secondary" style={{ marginInlineStart: 12 }} onClick={() => setDetail(null)}>
+              {t("common.close")}
+            </button>
+          </div>
+          <div className="kpi-grid" style={{ marginBottom: 16 }}>
+            <div className="kpi-card">
+              <div className="value">{detail.summary.incidentCount}</div>
+              <div className="label">{t("equipment.incidentCount")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="value">{detail.summary.totalRepairCost.toFixed(2)}</div>
+              <div className="label">{t("equipment.totalRepairCost")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="value">{detail.summary.totalSpareCost.toFixed(2)}</div>
+              <div className="label">{t("equipment.totalSpareCost")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="value">{detail.summary.totalLaborCost.toFixed(2)}</div>
+              <div className="label">{t("equipment.totalLaborCost")}</div>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 8, marginBottom: 16, fontSize: 14 }}>
+            <div>
+              <strong>{t("equipment.serialNumber")}:</strong> {detail.equipment.serialNumber ?? "—"}
+            </div>
+            <div>
+              <strong>{t("equipment.warrantyUntil")}:</strong>{" "}
+              {detail.equipment.warrantyUntil
+                ? new Date(detail.equipment.warrantyUntil).toLocaleDateString(locale)
+                : "—"}
+            </div>
+            <div>
+              <strong>{t("equipment.notes")}:</strong> {detail.equipment.notes ?? "—"}
+            </div>
+          </div>
+          <div className="section-title" style={{ fontSize: 14 }}>
+            {t("equipment.incidentHistory")}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t("equipment.colDate")}</th>
+                <th>{t("equipment.colType")}</th>
+                <th>{t("equipment.colStatus")}</th>
+                <th>{t("equipment.colDescription")}</th>
+                <th>{t("equipment.colCost")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.equipment.incidents.map((inc) => (
+                <tr key={inc.id}>
+                  <td>{new Date(inc.createdAt).toLocaleString(locale)}</td>
+                  <td>{inc.type}</td>
+                  <td>{inc.status}</td>
+                  <td>{inc.description}</td>
+                  <td>{inc.repairCost.toFixed(2)}</td>
+                </tr>
+              ))}
+              {detail.equipment.incidents.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="empty-state">
+                    {t("equipment.noIncidents")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

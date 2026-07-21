@@ -25,7 +25,25 @@ interface SalesTarget {
   id: number;
   period: string;
   amount: number;
+  targetQty: number | null;
   branch: { id: number; name: string };
+  service: { id: number; serviceName: string } | null;
+}
+
+interface Service {
+  id: number;
+  serviceName: string;
+}
+
+interface TargetProgress {
+  target: SalesTarget;
+  achievedQty: number;
+  achievedAmount: number;
+  remainingAmount: number;
+  remainingQty: number | null;
+  amountPct: number | null;
+  qtyPct: number | null;
+  bestEmployee: { name: string; count: number } | null;
 }
 
 interface Movement {
@@ -46,6 +64,8 @@ export default function Materials() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [targets, setTargets] = useState<SalesTarget[]>([]);
+  const [progress, setProgress] = useState<TargetProgress[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [itemName, setItemName] = useState("");
   const [itemUnit, setItemUnit] = useState("liter");
@@ -58,19 +78,25 @@ export default function Materials() {
   const [targetBranchId, setTargetBranchId] = useState("");
   const [targetPeriod, setTargetPeriod] = useState("daily");
   const [targetAmount, setTargetAmount] = useState("");
+  const [targetServiceId, setTargetServiceId] = useState("");
+  const [targetQty, setTargetQty] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    const [b, i, tg, mv] = await Promise.all([
+    const [b, i, tg, mv, svc, prog] = await Promise.all([
       apiFetch("/api/branches", token),
       apiFetch("/api/inventory/items", token),
       apiFetch("/api/sales-targets", token),
       apiFetch("/api/inventory/movements", token),
+      apiFetch("/api/services", token).catch(() => []),
+      apiFetch("/api/sales-targets/progress", token).catch(() => []),
     ]);
     setBranches(b);
     setItems(i);
     setTargets(tg);
     setMovements(mv);
+    setServices(svc);
+    setProgress(prog);
     if (b.length && !targetBranchId) setTargetBranchId(String(b[0].id));
     if (b.length && !moveBranchId) setMoveBranchId(String(b[0].id));
     if (i.length && !moveItemId) setMoveItemId(String(i[0].id));
@@ -125,8 +151,12 @@ export default function Materials() {
         branchId: Number(targetBranchId),
         period: targetPeriod,
         amount: Number(targetAmount),
+        serviceId: targetServiceId ? Number(targetServiceId) : null,
+        targetQty: targetQty ? Number(targetQty) : null,
       });
       setTargetAmount("");
+      setTargetQty("");
+      setTargetServiceId("");
       load();
     } catch (err: any) {
       setError(err.message);
@@ -154,6 +184,14 @@ export default function Materials() {
               <option value="weekly">{t("materials.period.weekly")}</option>
               <option value="monthly">{t("materials.period.monthly")}</option>
             </select>
+            <select value={targetServiceId} onChange={(e) => setTargetServiceId(e.target.value)}>
+              <option value="">{t("materials.allServices")}</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.serviceName}
+                </option>
+              ))}
+            </select>
             <input
               type="number"
               min="0"
@@ -163,6 +201,14 @@ export default function Materials() {
               onChange={(e) => setTargetAmount(e.target.value)}
               required
             />
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder={t("materials.targetQtyPlaceholder")}
+              value={targetQty}
+              onChange={(e) => setTargetQty(e.target.value)}
+            />
             <button className="btn">{t("common.save")}</button>
           </div>
         </form>
@@ -171,7 +217,9 @@ export default function Materials() {
             <tr>
               <th>{t("materials.colBranch")}</th>
               <th>{t("materials.colPeriod")}</th>
+              <th>{t("materials.colService")}</th>
               <th>{t("materials.colAmount")}</th>
+              <th>{t("materials.colTargetQty")}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,20 +227,55 @@ export default function Materials() {
               <tr key={tg.id}>
                 <td>{tg.branch.name}</td>
                 <td>{t(`materials.period.${tg.period}`)}</td>
+                <td>{tg.service?.serviceName ?? t("materials.allServices")}</td>
                 <td>
                   {tg.amount.toFixed(2)} {t("common.riyal")}
                 </td>
+                <td>{tg.targetQty ?? "—"}</td>
               </tr>
             ))}
             {targets.length === 0 && (
               <tr>
-                <td colSpan={3} className="empty-state">
+                <td colSpan={5} className="empty-state">
                   {t("materials.emptyTargets")}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {progress.length > 0 && (
+          <>
+            <div className="section-title" style={{ marginTop: 16 }}>
+              {t("materials.progressTitle")}
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("materials.colBranch")}</th>
+                  <th>{t("materials.colService")}</th>
+                  <th>{t("materials.colAchieved")}</th>
+                  <th>{t("materials.colProgress")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {progress.map((p) => (
+                  <tr key={p.target.id}>
+                    <td>{p.target.branch.name}</td>
+                    <td>{p.target.service?.serviceName ?? t("materials.allServices")}</td>
+                    <td>
+                      {p.achievedAmount.toFixed(0)} {t("common.riyal")}
+                      {p.target.targetQty != null && ` · ${p.achievedQty}/${p.target.targetQty}`}
+                    </td>
+                    <td>
+                      {p.amountPct != null && `${p.amountPct}%`}
+                      {p.qtyPct != null && ` · ${p.qtyPct}% ${t("materials.qtyProgress")}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       <div className="section-card">

@@ -22,9 +22,14 @@ const itemSchema = z.object({
   name: z.string().min(1),
   unit: z.string().min(1).optional(),
   warehouseQty: z.number().nonnegative().optional(),
+  minQty: z.number().nonnegative().optional(),
+  supplier: z.string().optional(),
+  purchasePrice: z.number().nonnegative().optional(),
+  category: z.string().optional(),
+  sku: z.string().optional(),
 });
 
-router.post("/items", requireAuth, requireRole("manager"), async (req, res) => {
+router.post("/items", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const parsed = itemSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
   const item = await prisma.inventoryItem.create({
@@ -32,17 +37,27 @@ router.post("/items", requireAuth, requireRole("manager"), async (req, res) => {
       name: parsed.data.name,
       unit: parsed.data.unit ?? "liter",
       warehouseQty: parsed.data.warehouseQty ?? 0,
+      minQty: parsed.data.minQty ?? 0,
+      supplier: parsed.data.supplier,
+      purchasePrice: parsed.data.purchasePrice,
+      category: parsed.data.category,
+      sku: parsed.data.sku,
     },
     include: { balances: true },
   });
   res.status(201).json(item);
 });
 
-router.patch("/items/:id", requireAuth, requireRole("manager"), async (req, res) => {
+router.patch("/items/:id", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const schema = z.object({
     name: z.string().min(1).optional(),
     unit: z.string().min(1).optional(),
     isActive: z.boolean().optional(),
+    minQty: z.number().nonnegative().optional(),
+    supplier: z.string().nullable().optional(),
+    purchasePrice: z.number().nonnegative().nullable().optional(),
+    category: z.string().nullable().optional(),
+    sku: z.string().nullable().optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());

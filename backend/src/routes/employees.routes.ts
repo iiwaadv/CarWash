@@ -4,6 +4,7 @@ import { EMPLOYEE_ROLE } from "../constants/enums";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { hashPin } from "../utils/pin";
+import { writeAudit } from "../utils/audit";
 
 const router = Router();
 
@@ -16,6 +17,9 @@ router.get("/", requireAuth, async (req, res) => {
       branchId: true,
       name: true,
       role: true,
+      jobTitle: true,
+      managedBranchIdsJson: true,
+      permissionsJson: true,
       isActive: true,
       defaultBayId: true,
       branch: { select: { name: true } },
@@ -30,11 +34,13 @@ const createSchema = z.object({
   branchId: z.number().int(),
   name: z.string().min(1),
   role: z.enum(EMPLOYEE_ROLE),
+  jobTitle: z.string().optional(),
+  managedBranchIdsJson: z.string().nullable().optional(),
+  permissionsJson: z.string().nullable().optional(),
   pinCode: z.string().length(4),
   defaultBayId: z.number().int().nullable().optional(),
 });
 
-// Managing staff & permissions is a manager-only capability (executive dashboard).
 router.post("/", requireAuth, requireRole("manager"), async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
@@ -43,12 +49,22 @@ router.post("/", requireAuth, requireRole("manager"), async (req, res) => {
     data: { ...rest, pinCode: hashPin(pinCode) },
     include: { defaultBay: { select: { id: true, bayName: true } }, branch: { select: { name: true } } },
   });
+  await writeAudit({
+    actor: req.auth,
+    action: "create",
+    entityType: "employee",
+    entityId: employee.id,
+    after: { ...employee, pinCode: undefined },
+  });
   res.status(201).json({ ...employee, pinCode: undefined });
 });
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   role: z.enum(EMPLOYEE_ROLE).optional(),
+  jobTitle: z.string().nullable().optional(),
+  managedBranchIdsJson: z.string().nullable().optional(),
+  permissionsJson: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
   pinCode: z.string().length(4).optional(),
   defaultBayId: z.number().int().nullable().optional(),
@@ -59,15 +75,23 @@ router.patch("/:id", requireAuth, requireRole("manager"), async (req, res) => {
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
   const { pinCode, ...rest } = parsed.data;
+  const before = await prisma.employee.findUnique({ where: { id: Number(req.params.id) } });
   const employee = await prisma.employee.update({
     where: { id: Number(req.params.id) },
     data: { ...rest, ...(pinCode ? { pinCode: hashPin(pinCode) } : {}) },
     include: { defaultBay: { select: { id: true, bayName: true } }, branch: { select: { name: true } } },
   });
+  await writeAudit({
+    actor: req.auth,
+    action: "update",
+    entityType: "employee",
+    entityId: employee.id,
+    before: before ? { ...before, pinCode: undefined } : null,
+    after: { ...employee, pinCode: undefined },
+  });
   res.json({ ...employee, pinCode: undefined });
 });
 
-// Instant deactivate ("stop account with one click") without deleting history.
 router.post("/:id/deactivate", requireAuth, requireRole("manager"), async (req, res) => {
   const employee = await prisma.employee.update({
     where: { id: Number(req.params.id) },

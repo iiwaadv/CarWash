@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 export interface AuthPayload {
   employeeId: number;
   branchId: number;
-  role: "manager" | "supervisor" | "washer" | "detailer";
+  role: "manager" | "branch_manager" | "supervisor" | "washer" | "detailer";
   name: string;
 }
 

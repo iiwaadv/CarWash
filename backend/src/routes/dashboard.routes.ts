@@ -84,6 +84,8 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
     lowStock,
     dirtyCarReports,
     activeEmployees,
+    bayStats,
+    deliveredJobsToday,
   ] = await Promise.all([
     prisma.jobOrder.count({ where: { createdAt: inToday } }),
     prisma.jobOrder.count({ where: { status: "delivered", deliveredAt: inToday } }),
@@ -105,13 +107,28 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
     }),
     prisma.branchInventoryBalance.findMany({
       where: { quantity: { lte: 10 } },
-      include: { item: { select: { name: true, unit: true } }, branch: { select: { name: true } } },
+      include: { item: { select: { name: true, unit: true, minQty: true } }, branch: { select: { name: true } } },
       take: 20,
     }),
     prisma.maintenanceIncident.count({
       where: { createdAt: inToday, type: "customer_car_damage" },
     }),
     prisma.employee.count({ where: { isActive: true, role: { not: "manager" } } }),
+    prisma.bay.findMany({
+      select: {
+        id: true,
+        branchId: true,
+        jobOrders: {
+          where: { status: { in: ["queued", "washing", "quality_check", "ready"] } },
+          select: { id: true },
+        },
+      },
+    }),
+    prisma.jobOrder.findMany({
+      where: { status: "delivered", deliveredAt: inToday },
+      select: { createdAt: true, washingStartedAt: true, readyAt: true, deliveredAt: true },
+      take: 500,
+    }),
   ]);
 
   const liveByBranch = await Promise.all(
@@ -126,6 +143,9 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
         prisma.jobOrder.count({ where: { branchId: b.id, createdAt: inToday } }),
         prisma.jobOrder.count({ where: { branchId: b.id, status: "delivered", deliveredAt: inToday } }),
       ]);
+      const branchBays = bayStats.filter((bay) => bay.branchId === b.id);
+      const occupiedBays = branchBays.filter((bay) => bay.jobOrders.length > 0).length;
+      const bayCount = branchBays.length;
       return {
         branchId: b.id,
         branchName: b.name,
@@ -136,6 +156,9 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
         activeInside: active,
         receivedToday: received,
         deliveredToday: delivered,
+        bayCount,
+        occupiedBays,
+        occupancyPct: bayCount > 0 ? Math.round((occupiedBays / bayCount) * 1000) / 10 : 0,
       };
     })
   );
@@ -143,6 +166,39 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
   const upsellAccepted = upsellsToday.filter((u) => u.status === "accepted");
   const upsellRevenue = upsellAccepted.reduce((s, u) => s + (u.service?.basePrice ?? 0), 0);
   const upsellBonus = upsellAccepted.reduce((s, u) => s + u.bonusAmount, 0);
+
+  const occupiedTotal = bayStats.filter((b) => b.jobOrders.length > 0).length;
+  const bayTotal = bayStats.length;
+  const occupancyPct = bayTotal > 0 ? Math.round((occupiedTotal / bayTotal) * 1000) / 10 : 0;
+
+  function avgMinutes(
+    rows: Array<{ start: Date | null; end: Date | null }>,
+  ): number | null {
+    const vals = rows
+      .filter((r) => r.start && r.end && r.end > r.start)
+      .map((r) => (r.end!.getTime() - r.start!.getTime()) / 60000);
+    if (!vals.length) return null;
+    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+  }
+
+  const avgWaitMinutes = avgMinutes(
+    deliveredJobsToday.map((j) => ({
+      start: j.createdAt,
+      end: j.washingStartedAt,
+    }))
+  );
+  const avgServiceMinutes = avgMinutes(
+    deliveredJobsToday.map((j) => ({
+      start: j.washingStartedAt,
+      end: j.deliveredAt,
+    }))
+  );
+  const avgCycleMinutes = avgMinutes(
+    deliveredJobsToday.map((j) => ({
+      start: j.createdAt,
+      end: j.deliveredAt,
+    }))
+  );
 
   res.json({
     timezone: "Asia/Riyadh",
@@ -168,6 +224,12 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
       closuresToday,
       activeEmployees,
       lowStockCount: lowStock.length,
+      bayTotal,
+      occupiedBays: occupiedTotal,
+      occupancyPct,
+      avgWaitMinutes,
+      avgServiceMinutes,
+      avgCycleMinutes,
     },
     byBranch: liveByBranch,
     lowStock: lowStock.map((row) => ({
@@ -175,6 +237,7 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
       unit: row.item.unit,
       branch: row.branch.name,
       quantity: row.quantity,
+      minQty: row.item.minQty,
     })),
   });
 });

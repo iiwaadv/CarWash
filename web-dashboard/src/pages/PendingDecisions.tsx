@@ -72,10 +72,21 @@ export default function PendingDecisions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function decide(id: number, action: "approve" | "reject") {
+  async function decide(id: number, action: "approve" | "reject" | "amend" | "return") {
+    let reason: string | undefined;
+    if (action !== "approve") {
+      const input = prompt(t("decisions.reasonPrompt"));
+      if (input === null) return;
+      if (!input.trim()) return;
+      reason = input.trim();
+    }
     setBusyId(id);
     try {
-      await apiFetch(`/api/maintenance/${id}/${action}`, token, { method: "POST" });
+      if (action === "approve") {
+        await apiFetch(`/api/maintenance/${id}/approve`, token, { method: "POST" });
+      } else {
+        await apiFetchJson(`/api/maintenance/${id}/${action}`, token, "POST", { reason });
+      }
       await load();
     } finally {
       setBusyId(null);
@@ -176,6 +187,12 @@ export default function PendingDecisions() {
             <>
               <button className="btn danger" disabled={busyId === inc.id} onClick={() => decide(inc.id, "reject")}>
                 {t("decisions.reject")}
+              </button>
+              <button className="btn secondary" disabled={busyId === inc.id} onClick={() => decide(inc.id, "amend")}>
+                {t("decisions.amend")}
+              </button>
+              <button className="btn secondary" disabled={busyId === inc.id} onClick={() => decide(inc.id, "return")}>
+                {t("decisions.returnReview")}
               </button>
               <button className="btn success" disabled={busyId === inc.id} onClick={() => decide(inc.id, "approve")}>
                 {t("decisions.approve")}

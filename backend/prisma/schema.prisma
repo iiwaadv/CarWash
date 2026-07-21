@@ -64,11 +64,16 @@ model Bay {
 
 // أجهزة/معدات كل موقف غسيل - يديرها المدير لربط بلاغات الأعطال بجهاز محدد
 model BayEquipment {
-  id        Int      @id @default(autoincrement()) @map("equipment_id")
-  bayId     Int      @map("bay_id")
-  name      String   @map("equipment_name")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement()) @map("equipment_id")
+  bayId         Int       @map("bay_id")
+  name          String    @map("equipment_name")
+  serialNumber  String?   @map("serial_number")
+  installedAt   DateTime? @map("installed_at")
+  warrantyUntil DateTime? @map("warranty_until")
+  notes         String?
+  photosJson    String?   @map("photos_json")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   bay       Bay                   @relation(fields: [bayId], references: [id])
   incidents MaintenanceIncident[]
@@ -80,13 +85,16 @@ model BayEquipment {
 // 3. الموظفون
 // ---------------------------------------------------------------------------
 model Employee {
-  id           Int     @id @default(autoincrement()) @map("employee_id")
-  branchId     Int     @map("branch_id")
-  name         String
-  role         String // manager | supervisor | washer | detailer
-  pinCode      String  @map("pin_code") // hashed 4-digit PIN
-  isActive     Boolean @default(true) @map("is_active")
-  defaultBayId Int?    @map("default_bay_id") // ربط العامل بموقف غسيل افتراضي
+  id                    Int     @id @default(autoincrement()) @map("employee_id")
+  branchId              Int     @map("branch_id")
+  name                  String
+  role                  String // manager | branch_manager | supervisor | washer | detailer
+  jobTitle              String? @map("job_title") // مسمى وظيفي ديناميكي للعرض
+  managedBranchIdsJson  String? @map("managed_branch_ids_json") // لفروع مدير الفروع
+  permissionsJson       String? @map("permissions_json") // صلاحيات اختيارية JSON
+  pinCode               String  @map("pin_code") // hashed 4-digit PIN
+  isActive              Boolean @default(true) @map("is_active")
+  defaultBayId          Int?    @map("default_bay_id") // ربط العامل بموقف غسيل افتراضي
 
   branch                Branch                 @relation(fields: [branchId], references: [id])
   defaultBay            Bay?                   @relation("EmployeeDefaultBay", fields: [defaultBayId], references: [id])
@@ -98,6 +106,8 @@ model Employee {
   assignedTasks         Task[]                 @relation("TaskAssignee")
   createdTasks          Task[]                 @relation("TaskCreator")
   receivedIncidents     MaintenanceIncident[]  @relation("IncidentReceiver")
+  decidedIncidents      MaintenanceIncident[]  @relation("IncidentDecider")
+  auditLogs             AuditLog[]
 
   @@map("employees")
 }
@@ -130,6 +140,7 @@ model Service {
   targetBranchIdsJson  String? @map("target_branch_ids_json") // JSON number[] من Branch
 
   upsellingLogs UpsellingLog[]
+  salesTargets  SalesTarget[]
 
   @@map("services")
 }
@@ -138,19 +149,21 @@ model Service {
 // 6. تذاكر غسيل السيارات
 // ---------------------------------------------------------------------------
 model JobOrder {
-  id             Int      @id @default(autoincrement()) @map("job_id")
-  branchId       Int      @map("branch_id")
-  bayId          Int?     @map("bay_id")
-  posInvoiceNo   String?  @map("pos_invoice_no")
-  plateNumber    String   @map("plate_number")
-  customerPhone  String?  @map("customer_phone")
-  carType        String?  @map("car_type") // small | medium | large
-  status         String   @default("queued") // queued|washing|quality_check|ready|delivered
-  isHighlyDirty  Boolean  @default(false) @map("is_highly_dirty")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  deliveredAt    DateTime? @map("delivered_at")
-  clientUuid     String?  @map("client_uuid") // idempotency key from offline tablet sync
+  id                Int      @id @default(autoincrement()) @map("job_id")
+  branchId          Int      @map("branch_id")
+  bayId             Int?     @map("bay_id")
+  posInvoiceNo      String?  @map("pos_invoice_no")
+  plateNumber       String   @map("plate_number")
+  customerPhone     String?  @map("customer_phone")
+  carType           String?  @map("car_type") // small | medium | large
+  status            String   @default("queued") // queued|washing|quality_check|ready|delivered
+  isHighlyDirty     Boolean  @default(false) @map("is_highly_dirty")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  washingStartedAt  DateTime? @map("washing_started_at")
+  readyAt           DateTime? @map("ready_at")
+  deliveredAt       DateTime? @map("delivered_at")
+  clientUuid        String?  @map("client_uuid") // idempotency key from offline tablet sync
 
   branch           Branch             @relation(fields: [branchId], references: [id])
   bay              Bay?               @relation(fields: [bayId], references: [id])
@@ -343,8 +356,20 @@ model MaintenanceIncident {
   compensationPaid  Float    @default(0) @map("compensation_paid")
   proposedDeduction Float    @default(0) @map("proposed_deduction")
   repairCost        Float    @default(0) @map("repair_cost")
+  sparePartName     String?  @map("spare_part_name")
+  sparePartSku      String?  @map("spare_part_sku")
+  sparePartSupplier String?  @map("spare_part_supplier")
+  sparePartCost     Float    @default(0) @map("spare_part_cost")
+  laborCost         Float    @default(0) @map("labor_cost")
+  warrantyMonths    Int?     @map("warranty_months")
+  warrantyPhotoUrl  String?  @map("warranty_photo_url")
+  invoiceUrl        String?  @map("invoice_url")
+  workNotes         String?  @map("work_notes")
+  decisionReason    String?  @map("decision_reason")
+  decisionAt        DateTime? @map("decision_at")
+  decidedById       Int?     @map("decided_by_id")
   costPending       Boolean  @default(false) @map("cost_pending") // اكتملت الصيانة ولم تُدخل التكلفة بعد
-  status            String   @default("pending_approval") // pending_approval|approved|rejected|received|in_progress|completed
+  status            String   @default("pending_approval") // pending_approval|approved|rejected|needs_amendment|returned_for_review|received|in_progress|completed
   receivedById      Int?     @map("received_by_id")
   receivedAt        DateTime? @map("received_at")
   startedAt         DateTime? @map("started_at")
@@ -356,6 +381,7 @@ model MaintenanceIncident {
   bay        Bay?          @relation(fields: [bayId], references: [id])
   equipment  BayEquipment? @relation(fields: [equipmentId], references: [id])
   receivedBy Employee?     @relation("IncidentReceiver", fields: [receivedById], references: [id])
+  decidedBy  Employee?     @relation("IncidentDecider", fields: [decidedById], references: [id])
 
   @@map("maintenance_and_incidents")
 }
@@ -364,15 +390,18 @@ model MaintenanceIncident {
 // أهداف البيع (يومي / أسبوعي / شهري) لكل فرع
 // ---------------------------------------------------------------------------
 model SalesTarget {
-  id        Int      @id @default(autoincrement()) @map("target_id")
-  branchId  Int      @map("branch_id")
-  period    String   // daily | weekly | monthly
-  amount    Float    // هدف الإيراد بالريال
-  startDate DateTime @map("start_date") // بداية فترة الهدف
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         Int      @id @default(autoincrement()) @map("target_id")
+  branchId   Int      @map("branch_id")
+  serviceId  Int?     @map("service_id") // null = هدف إيراد عام للفرع
+  period     String   // daily | weekly | monthly
+  amount     Float    // هدف الإيراد بالريال
+  targetQty  Int?     @map("target_qty") // هدف بعدد مرات البيع (اختياري)
+  startDate  DateTime @map("start_date") // بداية فترة الهدف
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  branch Branch @relation(fields: [branchId], references: [id])
+  branch  Branch   @relation(fields: [branchId], references: [id])
+  service Service? @relation(fields: [serviceId], references: [id])
 
   @@map("sales_targets")
   @@index([branchId, period, isActive])
@@ -382,12 +411,17 @@ model SalesTarget {
 // مخزون المواد (مستودع مركزي + أرصدة الفروع + حركة التسليم والاستهلاك)
 // ---------------------------------------------------------------------------
 model InventoryItem {
-  id          Int      @id @default(autoincrement()) @map("item_id")
-  name        String
-  unit        String   @default("liter") // liter | piece | kg
-  warehouseQty Float   @default(0) @map("warehouse_qty")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement()) @map("item_id")
+  name          String
+  unit          String   @default("liter") // liter | piece | kg
+  warehouseQty  Float    @default(0) @map("warehouse_qty")
+  minQty        Float    @default(0) @map("min_qty")
+  supplier      String?
+  purchasePrice Float?   @map("purchase_price")
+  category      String?
+  sku           String?
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   balances  BranchInventoryBalance[]
   movements InventoryMovement[]
@@ -424,4 +458,22 @@ model InventoryMovement {
 
   @@map("inventory_movements")
   @@index([itemId, createdAt])
+}
+
+// سجل عمليات إداري (إضافة فوق الأساس)
+model AuditLog {
+  id         Int      @id @default(autoincrement()) @map("audit_id")
+  actorId    Int?     @map("actor_id")
+  actorName  String?  @map("actor_name")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  beforeJson String?  @map("before_json")
+  afterJson  String?  @map("after_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor Employee? @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+  @@index([entityType, createdAt])
 }

@@ -116,6 +116,20 @@ router.patch("/:id", requireAuth, async (req, res) => {
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
 
   const data: any = { ...parsed.data };
+  if (parsed.data.status === "washing") {
+    const current = await prisma.jobOrder.findUnique({
+      where: { id: Number(req.params.id) },
+      select: { washingStartedAt: true },
+    });
+    if (current && !current.washingStartedAt) data.washingStartedAt = new Date();
+  }
+  if (parsed.data.status === "ready" || parsed.data.status === "quality_check") {
+    const current = await prisma.jobOrder.findUnique({
+      where: { id: Number(req.params.id) },
+      select: { readyAt: true },
+    });
+    if (current && !current.readyAt) data.readyAt = new Date();
+  }
   if (parsed.data.status === "delivered") data.deliveredAt = new Date();
 
   const job = await prisma.jobOrder.update({

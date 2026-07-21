@@ -133,8 +133,34 @@ router.get("/summary", requireAuth, requireRole("manager"), async (req, res) => 
 
   const targets = await prisma.salesTarget.findMany({
     where: { isActive: true, ...(branchId ? { branchId } : {}) },
-    include: { branch: { select: { name: true } } },
+    include: {
+      branch: { select: { name: true } },
+      service: { select: { serviceName: true } },
+    },
   });
+
+  const cycleSamples = jobs.filter((j) => j.deliveredAt);
+  const avgCycleMinutes =
+    cycleSamples.length > 0
+      ? Math.round(
+          (cycleSamples.reduce(
+            (s, j) => s + (j.deliveredAt!.getTime() - j.createdAt.getTime()) / 60000,
+            0
+          ) /
+            cycleSamples.length) *
+            10
+        ) / 10
+      : null;
+
+  const bayCount = await prisma.bay.count(branchId ? { where: { branchId } } : undefined);
+  const occupiedNow = await prisma.jobOrder.count({
+    where: {
+      status: { in: ["washing", "quality_check", "ready"] },
+      bayId: { not: null },
+      ...(branchId ? { branchId } : {}),
+    },
+  });
+  const occupancyPct = bayCount > 0 ? Math.round((occupiedNow / bayCount) * 1000) / 10 : 0;
 
   res.json({
     range: { from, to },
@@ -154,6 +180,8 @@ router.get("/summary", requireAuth, requireRole("manager"), async (req, res) => 
       shiftClosures: shiftReports.length,
       shiftOpenings: shiftOpenings.length,
       incidents: incidents.length,
+      occupancyPct,
+      avgCycleMinutes,
     },
     byBranch: Array.from(byBranchMap.values()),
     targets,
@@ -163,6 +191,89 @@ router.get("/summary", requireAuth, requireRole("manager"), async (req, res) => 
     recentShiftReports: shiftReports.slice(0, 30),
     recentFeedback: feedback.slice(0, 30),
   });
+});
+
+// CSV export — additive on top of summary
+router.get("/export", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
+  const branchId = req.query.branchId ? Number(req.query.branchId) : undefined;
+  const from = req.query.from ? new Date(String(req.query.from)) : daysAgo(7);
+  const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+
+  const [jobs, upsells, incidents] = await Promise.all([
+    prisma.jobOrder.findMany({
+      where: { createdAt: { gte: from, lte: to }, ...(branchId ? { branchId } : {}) },
+      include: { branch: { select: { name: true } }, bay: { select: { bayName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 2000,
+    }),
+    prisma.upsellingLog.findMany({
+      where: { createdAt: { gte: from, lte: to }, ...(branchId ? { job: { branchId } } : {}) },
+      include: {
+        service: true,
+        employee: { select: { name: true } },
+        job: { select: { plateNumber: true, branch: { select: { name: true } } } },
+      },
+      take: 2000,
+    }),
+    prisma.maintenanceIncident.findMany({
+      where: { createdAt: { gte: from, lte: to }, ...(branchId ? { branchId } : {}) },
+      include: {
+        branch: { select: { name: true } },
+        bay: { select: { bayName: true } },
+        equipment: { select: { name: true } },
+      },
+      take: 2000,
+    }),
+  ]);
+
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines: string[] = [];
+  lines.push("section,id,branch,plate_or_desc,status,amount,bay,employee,created_at");
+  for (const j of jobs) {
+    lines.push(
+      ["job", j.id, j.branch.name, j.plateNumber, j.status, "", j.bay?.bayName ?? "", "", j.createdAt.toISOString()]
+        .map(esc)
+        .join(",")
+    );
+  }
+  for (const u of upsells) {
+    lines.push(
+      [
+        "upsell",
+        u.id,
+        u.job.branch.name,
+        u.job.plateNumber,
+        u.status,
+        u.bonusAmount,
+        "",
+        u.employee?.name ?? "",
+        u.createdAt.toISOString(),
+      ]
+        .map(esc)
+        .join(",")
+    );
+  }
+  for (const i of incidents) {
+    lines.push(
+      [
+        "incident",
+        i.id,
+        i.branch.name,
+        i.description.slice(0, 80),
+        i.status,
+        i.repairCost,
+        i.bay?.bayName ?? "",
+        i.equipment?.name ?? "",
+        i.createdAt.toISOString(),
+      ]
+        .map(esc)
+        .join(",")
+    );
+  }
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="ejaz-report.csv"`);
+  res.send("\uFEFF" + lines.join("\n"));
 });
 
 export default router;

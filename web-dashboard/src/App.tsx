@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import TopBar from "./components/TopBar";
+import AuditLogs from "./pages/AuditLogs";
 import Branches from "./pages/Branches";
 import BranchDetail from "./pages/BranchDetail";
 import Employees from "./pages/Employees";
@@ -22,19 +23,20 @@ import Tasks from "./pages/Tasks";
 const TABS = [
   { id: "overview", labelKey: "nav.overview", component: Overview },
   { id: "search", labelKey: "nav.search", component: SearchCenter },
-  { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
-  { id: "tasks", labelKey: "nav.tasks", component: Tasks },
-  { id: "shifts", labelKey: "nav.shifts", component: Shifts },
-  { id: "branchDetail", labelKey: "nav.branchDetail", component: BranchDetail },
-  { id: "maintenance", labelKey: "nav.maintenance", component: PreventiveMaintenance },
-  { id: "equipment", labelKey: "nav.equipment", component: Equipment },
-  { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
   { id: "inventory", labelKey: "nav.sales", component: Inventory },
   { id: "materials", labelKey: "nav.inventory", component: Materials },
+  { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
+  { id: "maintenance", labelKey: "nav.maintenance", component: PreventiveMaintenance },
+  { id: "equipment", labelKey: "nav.equipment", component: Equipment },
+  { id: "shifts", labelKey: "nav.shifts", component: Shifts },
+  { id: "branchDetail", labelKey: "nav.branchDetail", component: BranchDetail },
   { id: "reports", labelKey: "nav.reports", component: Reports },
-  { id: "settings", labelKey: "nav.settings", component: Settings },
+  { id: "audit", labelKey: "nav.audit", component: AuditLogs },
+  { id: "tasks", labelKey: "nav.tasks", component: Tasks },
+  { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
   { id: "employees", labelKey: "nav.employees", component: Employees },
   { id: "branches", labelKey: "nav.branches", component: Branches },
+  { id: "settings", labelKey: "nav.settings", component: Settings },
 ];
 
 function Shell() {

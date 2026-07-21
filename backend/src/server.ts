@@ -25,6 +25,7 @@ import reportsRoutes from "./routes/reports.routes";
 import shiftsRoutes from "./routes/shifts.routes";
 import searchRoutes from "./routes/search.routes";
 import customersRoutes from "./routes/customers.routes";
+import auditRoutes from "./routes/audit.routes";
 import upsellingRoutes from "./routes/upselling.routes";
 
 const app = express();
@@ -56,6 +57,7 @@ app.use("/api/reports", reportsRoutes);
 app.use("/api/shifts", shiftsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/customers", customersRoutes);
+app.use("/api/audit-logs", auditRoutes);
 app.use("/api/cleanliness", cleanlinessRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/maintenance-schedules", maintenanceSchedulesRoutes);

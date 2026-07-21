@@ -4,7 +4,7 @@
 // here with zod at the API boundary.
 
 export const BRANCH_STATUS = ["open", "closed", "maintenance"] as const;
-export const EMPLOYEE_ROLE = ["manager", "supervisor", "washer", "detailer"] as const;
+export const EMPLOYEE_ROLE = ["manager", "branch_manager", "supervisor", "washer", "detailer"] as const;
 export const CAR_TYPE = ["small", "medium", "large"] as const;
 export const JOB_STATUS = [
   "queued",
@@ -30,6 +30,8 @@ export const INCIDENT_STATUS = [
   "pending_approval",
   "approved",
   "rejected",
+  "needs_amendment",
+  "returned_for_review",
   "received",
   "in_progress",
   "completed",

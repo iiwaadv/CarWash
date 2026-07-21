@@ -44,6 +44,10 @@ interface DailyTotals {
   closuresToday: number;
   activeEmployees: number;
   lowStockCount: number;
+  occupancyPct?: number;
+  avgWaitMinutes?: number | null;
+  avgServiceMinutes?: number | null;
+  avgCycleMinutes?: number | null;
 }
 
 interface DailyBranch {
@@ -195,6 +199,30 @@ export default function Overview() {
               <div className="value">{tot.activeEmployees}</div>
               <div className="label">{t("overview.activeStaff")}</div>
             </div>
+            {tot.occupancyPct != null && (
+              <div className="kpi-card">
+                <div className="value">{tot.occupancyPct}%</div>
+                <div className="label">{t("overview.occupancyPct")}</div>
+              </div>
+            )}
+            {tot.avgWaitMinutes != null && (
+              <div className="kpi-card">
+                <div className="value">{tot.avgWaitMinutes}</div>
+                <div className="label">{t("overview.avgWait")}</div>
+              </div>
+            )}
+            {tot.avgServiceMinutes != null && (
+              <div className="kpi-card">
+                <div className="value">{tot.avgServiceMinutes}</div>
+                <div className="label">{t("overview.avgService")}</div>
+              </div>
+            )}
+            {tot.avgCycleMinutes != null && (
+              <div className="kpi-card">
+                <div className="value">{tot.avgCycleMinutes}</div>
+                <div className="label">{t("overview.avgCycle")}</div>
+              </div>
+            )}
           </div>
         </div>
       )}

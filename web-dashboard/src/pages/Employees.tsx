@@ -16,6 +16,7 @@ interface EmployeeRow {
   id: number;
   name: string;
   role: string;
+  jobTitle: string | null;
   isActive: boolean;
   branchId: number;
   defaultBayId: number | null;
@@ -31,6 +32,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [name, setName] = useState("");
   const [role, setRole] = useState("supervisor");
+  const [jobTitle, setJobTitle] = useState("");
   const [branchId, setBranchId] = useState<number | null>(null);
   const [defaultBayId, setDefaultBayId] = useState<string>("");
   const [pin, setPin] = useState("");
@@ -42,6 +44,7 @@ export default function Employees() {
 
   const ROLES = [
     { id: "manager", label: t("employees.roles.manager") },
+    { id: "branch_manager", label: t("employees.roles.branch_manager") },
     { id: "supervisor", label: t("employees.roles.supervisor") },
     { id: "washer", label: t("employees.roles.washer") },
     { id: "detailer", label: t("employees.roles.detailer") },
@@ -74,11 +77,13 @@ export default function Employees() {
       await apiFetchJson("/api/employees", token, "POST", {
         name,
         role,
+        jobTitle: jobTitle.trim() || undefined,
         branchId,
         pinCode: pin,
         defaultBayId: defaultBayId ? Number(defaultBayId) : null,
       });
       setName("");
+      setJobTitle("");
       setPin("");
       setDefaultBayId("");
       load();
@@ -129,6 +134,7 @@ export default function Employees() {
         <form onSubmit={createEmployee}>
           <div className="form-row">
             <input placeholder={t("employees.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} required />
+            <input placeholder={t("employees.jobTitle")} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
             <select value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLES.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -178,6 +184,7 @@ export default function Employees() {
             <tr>
               <th>{t("employees.colName")}</th>
               <th>{t("employees.colRole")}</th>
+              <th>{t("employees.jobTitle")}</th>
               <th>{t("employees.colBranch")}</th>
               <th>{t("employees.colBay")}</th>
               <th>{t("employees.colStatus")}</th>
@@ -210,6 +217,7 @@ export default function Employees() {
                     )}
                   </td>
                   <td>{ROLES.find((r) => r.id === emp.role)?.label ?? emp.role}</td>
+                  <td>{emp.jobTitle ?? "—"}</td>
                   <td>{emp.branch?.name}</td>
                   <td>
                     <select
