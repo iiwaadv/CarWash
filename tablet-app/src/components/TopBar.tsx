@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSync } from "../context/SyncContext";
 import MaintenanceModal from "./MaintenanceModal";
 import ShiftClosureWizard from "../pages/ShiftClosureWizard";
+import ShiftOpeningWizard from "./ShiftOpeningWizard";
 
 function getGreetingKey(date: Date = new Date()): string {
   const hour = date.getHours();
@@ -17,6 +18,7 @@ export default function TopBar() {
   const { employee, logout } = useAuth();
   const sync = useSync();
   const { t, i18n } = useTranslation();
+  const [showOpening, setShowOpening] = useState(false);
   const [showClosure, setShowClosure] = useState(false);
   const [showMaintenance, setShowMaintenance] = useState(false);
   const [greetingKey, setGreetingKey] = useState(getGreetingKey());
@@ -70,6 +72,9 @@ export default function TopBar() {
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowMaintenance(true)}>
           {t("topbar.reportIncidentBtn")}
         </button>
+        <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowOpening(true)}>
+          {t("topbar.openShiftBtn")}
+        </button>
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowClosure(true)}>
           {t("topbar.closeShiftBtn")}
         </button>
@@ -78,6 +83,7 @@ export default function TopBar() {
         </button>
       </div>
 
+      {showOpening && <ShiftOpeningWizard onClose={() => setShowOpening(false)} />}
       {showClosure && <ShiftClosureWizard onClose={() => setShowClosure(false)} />}
       {showMaintenance && <MaintenanceModal onClose={() => setShowMaintenance(false)} />}
     </div>

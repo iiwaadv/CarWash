@@ -65,9 +65,13 @@ router.get("/live", requireAuth, async (_req, res) => {
   res.json(cards);
 });
 
+const TIME_HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "صيغة الوقت يجب أن تكون HH:MM");
+
 const createSchema = z.object({
   name: z.string().min(1),
   status: z.enum(BRANCH_STATUS).optional(),
+  shiftOpenTime: TIME_HHMM.optional(),
+  shiftCloseTime: TIME_HHMM.optional(),
 });
 
 router.post("/", requireAuth, requireRole("manager"), async (req, res) => {

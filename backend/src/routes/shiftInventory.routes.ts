@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { publicUrl, uploadPhotos } from "../middleware/upload";
+import { isWithinShiftWindow } from "../utils/shiftWindow";
 
 const router = Router();
 const UPSELL_TARGET_PCT = 40; // matches the >40% success metric in the PRD
@@ -41,6 +42,15 @@ router.post(
     const supervisorId = req.auth!.employeeId;
     const shiftDate = new Date(parsed.data.shiftDate);
 
+    const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+    if (branch && req.auth!.role !== "manager" && !isWithinShiftWindow(branch.shiftOpenTime, branch.shiftCloseTime)) {
+      return res.status(403).json({
+        error: `إغلاق الوردية مسموح فقط بين ${branch.shiftOpenTime} و ${branch.shiftCloseTime}`,
+        shiftOpenTime: branch.shiftOpenTime,
+        shiftCloseTime: branch.shiftCloseTime,
+      });
+    }
+
     const dayStart = new Date(shiftDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(shiftDate);
@@ -70,10 +80,30 @@ router.post(
     const towelsLost = report.towelsReceivedStart - report.towelsCollectedEnd;
     const targetMet = upsellAchievedPct >= UPSELL_TARGET_PCT;
 
+    // مقارنة الكميات المسلمة عند فتح الوردية بالمتبقي عند الإغلاق -> نسبة الاستهلاك
+    const opening = await prisma.shiftOpening.findFirst({
+      where: { branchId, shiftDate: { gte: dayStart, lte: dayEnd } },
+      orderBy: { createdAt: "desc" },
+    });
+    let chemicalsConsumed: Record<string, number> | null = null;
+    if (opening?.chemicalsJson) {
+      try {
+        const received: Record<string, number> = JSON.parse(opening.chemicalsJson);
+        const remaining: Record<string, number> = JSON.parse(parsed.data.chemicalsRemainingJson);
+        chemicalsConsumed = {};
+        for (const key of Object.keys(received)) {
+          chemicalsConsumed[key] = Math.round((Number(received[key] || 0) - Number(remaining[key] || 0)) * 100) / 100;
+        }
+      } catch {
+        chemicalsConsumed = null;
+      }
+    }
+
     res.status(201).json({
       ...report,
       towelsLost,
       targetMet,
+      chemicalsConsumed,
       encouragementMessage: targetMet
         ? "🎉 أداء رائع اليوم! حافظ على هذا المستوى غداً وسنصل للقمة معاً."
         : "💪 يوم جديد، فرصة جديدة لتحقيق الهدف. نجاحك القادم أقرب مما تتوقع!",

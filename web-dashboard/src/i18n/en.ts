@@ -183,6 +183,7 @@ export const en = {
     listTitle: "Branch list",
     colName: "Branch name",
     colOperationalStatus: "Operational status",
+    colShiftTimes: "Shift hours (open → close)",
     colStatus: "Status",
     colActions: "Actions",
     restore: "Restore",

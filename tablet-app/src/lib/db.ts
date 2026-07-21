@@ -24,6 +24,7 @@ export type OutboxKind =
   | "upsell-accept"
   | "upsell-reject"
   | "feedback"
+  | "shift-opening"
   | "shift-inventory"
   | "cleanliness-complete"
   | "maintenance";

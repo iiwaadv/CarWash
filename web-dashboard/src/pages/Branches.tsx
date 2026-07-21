@@ -8,6 +8,8 @@ interface BranchRow {
   name: string;
   status: string;
   isActive: boolean;
+  shiftOpenTime: string;
+  shiftCloseTime: string;
 }
 
 export default function Branches() {
@@ -65,6 +67,11 @@ export default function Branches() {
     load();
   }
 
+  async function updateShiftTime(b: BranchRow, field: "shiftOpenTime" | "shiftCloseTime", value: string) {
+    setBranches((prev) => prev.map((row) => (row.id === b.id ? { ...row, [field]: value } : row)));
+    await apiFetchJson(`/api/branches/${b.id}`, token, "PATCH", { [field]: value });
+  }
+
   async function archiveBranch(b: BranchRow) {
     if (!confirm(t("branches.confirmArchive", { name: b.name }))) return;
     await apiFetch(`/api/branches/${b.id}`, token, { method: "DELETE" });
@@ -98,6 +105,7 @@ export default function Branches() {
             <tr>
               <th>{t("branches.colName")}</th>
               <th>{t("branches.colOperationalStatus")}</th>
+              <th>{t("branches.colShiftTimes")}</th>
               <th>{t("branches.colStatus")}</th>
               <th>{t("branches.colActions")}</th>
             </tr>
@@ -138,6 +146,25 @@ export default function Branches() {
                       </option>
                     ))}
                   </select>
+                </td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                    <input
+                      type="time"
+                      value={b.shiftOpenTime}
+                      disabled={!b.isActive}
+                      onChange={(e) => updateShiftTime(b, "shiftOpenTime", e.target.value)}
+                      style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)" }}
+                    />
+                    <span style={{ color: "var(--muted)" }}>→</span>
+                    <input
+                      type="time"
+                      value={b.shiftCloseTime}
+                      disabled={!b.isActive}
+                      onChange={(e) => updateShiftTime(b, "shiftCloseTime", e.target.value)}
+                      style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)" }}
+                    />
+                  </div>
                 </td>
                 <td>
                   <span className={`pill ${b.isActive ? "active" : "inactive"}`}>

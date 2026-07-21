@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import PhotoCaptureGrid from "../components/PhotoCaptureGrid";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE } from "../lib/api";
+import { apiFetch, API_BASE } from "../lib/api";
 import { enqueue } from "../lib/sync";
 
 const CHEMICAL_KEYS = ["shampoo_nano", "wax", "fog_sanitizer", "tire_shine"];
@@ -19,8 +19,22 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState<any | null>(null);
 
   const steps: string[] = t("shiftClosure.steps", { returnObjects: true }) as unknown as string[];
+
+  // Pre-fill towel/chemical received quantities from today's "shift opening"
+  // report, instead of relying on the supervisor to recall the number from memory.
+  useEffect(() => {
+    if (!token) return;
+    apiFetch("/api/shift-openings/latest", token)
+      .then((data) => {
+        if (!data) return;
+        setOpening(data);
+        setTowelsStart(String(data.towelsReceived ?? ""));
+      })
+      .catch(() => {});
+  }, [token]);
 
   async function submit() {
     setError(null);
@@ -102,6 +116,18 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
             </div>
           )}
 
+          {result.chemicalsConsumed && (
+            <div style={{ width: "100%" }}>
+              <div className="field-label">{t("shiftClosure.chemicalsConsumedLabel")}</div>
+              {Object.entries(result.chemicalsConsumed as Record<string, number>).map(([key, val]) => (
+                <div className="kv-row" key={key}>
+                  <span>{t(`shiftClosure.chemicals.${key}`, key)}</span>
+                  <strong>{val}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div style={{ color: "var(--muted)", marginTop: 12 }}>{result.encouragementMessage}</div>
 
           <button className="big-btn success" style={{ marginTop: 16, width: "100%" }} onClick={onClose}>
@@ -151,6 +177,7 @@ export default function ShiftClosureWizard({ onClose }: { onClose: () => void })
             ))}
             <div className="field-label">{t("shiftClosure.towelsStartLabel")}</div>
             <input className="text-input" inputMode="numeric" value={towelsStart} onChange={(e) => setTowelsStart(e.target.value)} />
+            {opening && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: -8, marginBottom: 8 }}>{t("shiftClosure.prefilledFromOpening")}</div>}
             <div className="field-label">{t("shiftClosure.towelsEndLabel")}</div>
             <input className="text-input" inputMode="numeric" value={towelsEnd} onChange={(e) => setTowelsEnd(e.target.value)} />
           </>

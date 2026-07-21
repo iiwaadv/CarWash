@@ -183,6 +183,7 @@ export const ar = {
     listTitle: "قائمة الفروع",
     colName: "اسم الفرع",
     colOperationalStatus: "الحالة التشغيلية",
+    colShiftTimes: "أوقات الوردية (فتح ← إغلاق)",
     colStatus: "الحالة",
     colActions: "إجراءات",
     restore: "استرجاع",

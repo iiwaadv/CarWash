@@ -16,6 +16,7 @@ import maintenanceSchedulesRoutes from "./routes/maintenanceSchedules.routes";
 import qualityLogsRoutes from "./routes/qualityLogs.routes";
 import servicesRoutes from "./routes/services.routes";
 import shiftInventoryRoutes from "./routes/shiftInventory.routes";
+import shiftOpeningsRoutes from "./routes/shiftOpenings.routes";
 import upsellingRoutes from "./routes/upselling.routes";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/quality-logs", qualityLogsRoutes);
 app.use("/api/upselling", upsellingRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/shift-inventory", shiftInventoryRoutes);
+app.use("/api/shift-openings", shiftOpeningsRoutes);
 app.use("/api/cleanliness", cleanlinessRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/maintenance-schedules", maintenanceSchedulesRoutes);

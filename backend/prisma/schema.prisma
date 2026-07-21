@@ -19,16 +19,19 @@ datasource db {
 // 1. الفروع
 // ---------------------------------------------------------------------------
 model Branch {
-  id        Int      @id @default(autoincrement()) @map("branch_id")
-  name      String
-  status    String   @default("closed") // open | closed | maintenance
-  isActive  Boolean  @default(true) @map("is_active") // soft-delete: false = محذوف/مؤرشف
-  createdAt DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement()) @map("branch_id")
+  name          String
+  status        String   @default("closed") // open | closed | maintenance
+  isActive      Boolean  @default(true) @map("is_active") // soft-delete: false = محذوف/مؤرشف
+  shiftOpenTime  String  @default("06:00") @map("shift_open_time") // "HH:MM" - يحدده المدير
+  shiftCloseTime String  @default("23:00") @map("shift_close_time") // "HH:MM" - يحدده المدير
+  createdAt     DateTime @default(now()) @map("created_at")
 
   bays               Bay[]
   employees          Employee[]
   jobOrders          JobOrder[]
   shiftInventoryReports ShiftInventoryReport[]
+  shiftOpenings         ShiftOpening[]
   maintenanceIncidents  MaintenanceIncident[]
   cleanlinessChecks     CleanlinessCheck[]
   maintenanceSchedules  MaintenanceSchedule[]
@@ -67,6 +70,7 @@ model Employee {
   bayAssignments        BayCrewAssignment[]
   inspectedQualityLogs  QualityLog[]           @relation("Inspector")
   shiftInventoryReports ShiftInventoryReport[]
+  shiftOpenings         ShiftOpening[]
   upsellingLogs         UpsellingLog[]
 
   @@map("employees")
@@ -185,6 +189,26 @@ model CustomerFeedback {
   job JobOrder @relation(fields: [jobId], references: [id])
 
   @@map("customer_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// جرد بداية الوردية (فتح الوردية) - Phase 4
+// ---------------------------------------------------------------------------
+model ShiftOpening {
+  id             Int      @id @default(autoincrement()) @map("opening_id")
+  branchId       Int      @map("branch_id")
+  supervisorId   Int      @map("supervisor_id")
+  shiftDate      DateTime @map("shift_date")
+  towelsReceived Int      @map("towels_received")
+  chemicalsJson  String?  @map("chemicals_json") // JSON {product: liters}
+  otherItemsJson String?  @map("other_items_json") // JSON [{name, qty}]
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  supervisor Employee @relation(fields: [supervisorId], references: [id])
+
+  @@map("shift_openings")
+  @@index([branchId, shiftDate])
 }
 
 // ---------------------------------------------------------------------------
