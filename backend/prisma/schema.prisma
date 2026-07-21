@@ -67,6 +67,7 @@ model Employee {
   bayAssignments        BayCrewAssignment[]
   inspectedQualityLogs  QualityLog[]           @relation("Inspector")
   shiftInventoryReports ShiftInventoryReport[]
+  upsellingLogs         UpsellingLog[]
 
   @@map("employees")
 }
@@ -156,14 +157,16 @@ model UpsellingLog {
   id               Int      @id @default(autoincrement()) @map("upsell_id")
   jobId            Int      @map("job_id")
   serviceId        Int      @map("service_id")
+  employeeId       Int?     @map("employee_id") // من قام بعرض/تسجيل العملية على التابلت (المستحق للبونص)
   status           String   // accepted | rejected
   rejectionReason  String?  @map("rejection_reason") // too_expensive|in_a_hurry|old_car|loyalty_program
   extraInvoiceNo   String?  @map("extra_invoice_no")
   bonusAmount      Float    @default(0) @map("bonus_amount")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  job     JobOrder @relation(fields: [jobId], references: [id])
-  service Service  @relation(fields: [serviceId], references: [id])
+  job      JobOrder  @relation(fields: [jobId], references: [id])
+  service  Service   @relation(fields: [serviceId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
 
   @@map("upselling_logs")
 }

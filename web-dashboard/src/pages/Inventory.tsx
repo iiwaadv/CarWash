@@ -10,6 +10,40 @@ interface TowelRow {
   shifts: number;
 }
 
+interface BonusDetail {
+  upsellId: number;
+  employeeId: number | null;
+  employeeName: string;
+  branchId: number;
+  branchName: string;
+  plateNumber: string;
+  serviceName: string;
+  bonusAmount: number;
+  extraInvoiceNo: string | null;
+  createdAt: string;
+}
+
+interface RejectionDetail {
+  upsellId: number;
+  employeeId: number | null;
+  employeeName: string;
+  branchId: number;
+  branchName: string;
+  plateNumber: string;
+  serviceName: string;
+  rejectionReason: string;
+  createdAt: string;
+}
+
+interface BranchBreakdown {
+  branchId: number;
+  branchName: string;
+  accepted: number;
+  rejected: number;
+  acceptanceRate: number;
+  totalBonusPaid: number;
+}
+
 interface UpsellAnalytics {
   total: number;
   accepted: number;
@@ -17,13 +51,17 @@ interface UpsellAnalytics {
   acceptanceRate: number;
   rejectionBreakdown: Record<string, number>;
   totalBonusPaid: number;
+  bonusDetails: BonusDetail[];
+  rejectionDetails: RejectionDetail[];
+  byBranch: BranchBreakdown[];
 }
 
 export default function Inventory() {
   const { token } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [towels, setTowels] = useState<TowelRow[]>([]);
   const [upsell, setUpsell] = useState<UpsellAnalytics | null>(null);
+  const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   const REASON_LABEL: Record<string, string> = {
     too_expensive: t("inventory.reasons.too_expensive"),
@@ -106,6 +144,110 @@ export default function Inventory() {
                   <td>{count}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {upsell && upsell.byBranch.length > 0 && (
+        <div className="section-card">
+          <div className="section-title">{t("inventory.byBranchTitle")}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t("inventory.colBranch")}</th>
+                <th>{t("inventory.colAccepted")}</th>
+                <th>{t("inventory.colRejected")}</th>
+                <th>{t("inventory.colRate")}</th>
+                <th>{t("inventory.colBonus")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upsell.byBranch.map((b) => (
+                <tr key={b.branchId}>
+                  <td style={{ fontWeight: 700 }}>{b.branchName}</td>
+                  <td>{b.accepted}</td>
+                  <td>{b.rejected}</td>
+                  <td>{b.acceptanceRate}%</td>
+                  <td>{b.totalBonusPaid.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {upsell && (
+        <div className="section-card">
+          <div className="section-title">{t("inventory.bonusDetailsTitle")}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t("inventory.colEmployee")}</th>
+                <th>{t("inventory.colBranch")}</th>
+                <th>{t("inventory.colService")}</th>
+                <th>{t("inventory.colPlate")}</th>
+                <th>{t("inventory.colInvoice")}</th>
+                <th>{t("inventory.colBonus")}</th>
+                <th>{t("inventory.colDate")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upsell.bonusDetails.map((d) => (
+                <tr key={d.upsellId}>
+                  <td style={{ fontWeight: 700 }}>{d.employeeName}</td>
+                  <td>{d.branchName}</td>
+                  <td>{d.serviceName}</td>
+                  <td>{d.plateNumber}</td>
+                  <td>{d.extraInvoiceNo ?? "—"}</td>
+                  <td style={{ color: "var(--success)", fontWeight: 700 }}>{d.bonusAmount.toFixed(2)}</td>
+                  <td>{new Date(d.createdAt).toLocaleString(locale)}</td>
+                </tr>
+              ))}
+              {upsell.bonusDetails.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="empty-state">
+                    {t("inventory.emptyBonusDetails")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {upsell && (
+        <div className="section-card">
+          <div className="section-title">{t("inventory.rejectionDetailsTitle")}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t("inventory.colEmployee")}</th>
+                <th>{t("inventory.colBranch")}</th>
+                <th>{t("inventory.colService")}</th>
+                <th>{t("inventory.colPlate")}</th>
+                <th>{t("inventory.colReasonDetail")}</th>
+                <th>{t("inventory.colDate")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upsell.rejectionDetails.map((d) => (
+                <tr key={d.upsellId}>
+                  <td style={{ fontWeight: 700 }}>{d.employeeName}</td>
+                  <td>{d.branchName}</td>
+                  <td>{d.serviceName}</td>
+                  <td>{d.plateNumber}</td>
+                  <td>{REASON_LABEL[d.rejectionReason] ?? d.rejectionReason}</td>
+                  <td>{new Date(d.createdAt).toLocaleString(locale)}</td>
+                </tr>
+              ))}
+              {upsell.rejectionDetails.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="empty-state">
+                    {t("inventory.emptyRejectionDetails")}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
