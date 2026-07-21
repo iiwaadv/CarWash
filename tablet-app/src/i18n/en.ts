@@ -60,6 +60,12 @@ export const en = {
     deliverBtn: "✅ Deliver to customer",
     checkingInProgress: "Checking...",
     noCars: "No cars",
+    cancelBtn: "❌ Cancel wash",
+    cancelConfirm: "Cancel wash for car {{plate}}?",
+    reassignBayBtn: "🅿️ Change bay",
+    selectNewBay: "Select new bay",
+    addServiceBtn: "🛍️ Add service",
+    close: "Close",
   },
   idleLock: {
     title: "Screen locked to protect {{name}}'s data",

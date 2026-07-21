@@ -10,6 +10,11 @@ import { apiFetch } from "../lib/api";
 import { db } from "../lib/db";
 import { queueJobPatch } from "../lib/sync";
 
+interface Bay {
+  id: number;
+  bayName: string;
+}
+
 interface Job {
   id: number | string;
   plateNumber: string;
@@ -37,9 +42,11 @@ export default function LiveYard() {
   const sync = useSync();
   const { t, i18n } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>(JSON.parse(localStorage.getItem(CACHE_KEY) ?? "[]"));
+  const [bays, setBays] = useState<Bay[]>([]);
   const [showNewCar, setShowNewCar] = useState(false);
   const [upsellFor, setUpsellFor] = useState<Job | null>(null);
   const [qualityFor, setQualityFor] = useState<Job | null>(null);
+  const [reassignFor, setReassignFor] = useState<number | string | null>(null);
 
   async function refresh() {
     if (!token || !branchId) return;
@@ -68,10 +75,21 @@ export default function LiveYard() {
     refresh();
     const interval = setInterval(refresh, 8000);
     return () => clearInterval(interval);
+    // Deliberately excludes sync.pendingCount: re-fetching on every single
+    // queued outbox change races with our own optimistic local updates and
+    // can flicker/revert a card's status mid-flight (e.g. right after
+    // "deliver" or "start washing"). The 8s interval is enough to reconcile.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, branchId, sync.pendingCount]);
+  }, [token, branchId]);
 
-  const active = jobs.filter((j) => j.status !== "delivered");
+  useEffect(() => {
+    if (!token || !branchId) return;
+    apiFetch(`/api/bays?branchId=${branchId}`, token)
+      .then(setBays)
+      .catch(() => setBays([]));
+  }, [token, branchId]);
+
+  const active = jobs.filter((j) => j.status !== "delivered" && j.status !== "cancelled");
   const columns: { key: string; title: string; jobs: Job[] }[] = [
     { key: "queued", title: t("yard.columnQueued"), jobs: active.filter((j) => j.status === "queued") },
     { key: "washing", title: t("yard.columnWashing"), jobs: active.filter((j) => j.status === "washing") },
@@ -92,7 +110,19 @@ export default function LiveYard() {
     setJobs((prev) => prev.filter((j) => j.id !== job.id));
   }
 
-  const remaining = active.filter((j) => j.status !== "delivered").length;
+  async function cancelJob(job: Job) {
+    if (!confirm(t("yard.cancelConfirm", { plate: job.plateNumber }))) return;
+    await queueJobPatch(job.id, { status: "cancelled" }, token);
+    setJobs((prev) => prev.filter((j) => j.id !== job.id));
+  }
+
+  async function reassignBay(job: Job, bay: Bay) {
+    await queueJobPatch(job.id, { bayId: bay.id }, token);
+    setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, bayId: bay.id, bay: { bayName: bay.bayName } } : j)));
+    setReassignFor(null);
+  }
+
+  const remaining = active.length;
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   return (
@@ -114,9 +144,38 @@ export default function LiveYard() {
                 <div className="car-card" key={String(job.id)}>
                   <div className="plate">{job.plateNumber}</div>
                   <div className="meta">
-                    <span>{job.bay?.bayName ?? (job.bayId ? t("yard.bayNumber", { n: job.bayId }) : t("yard.noBay"))}</span>
+                    {(col.key === "queued" || col.key === "washing") ? (
+                      <button
+                        className="badge"
+                        style={{ border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer" }}
+                        onClick={() => setReassignFor(reassignFor === job.id ? null : job.id)}
+                      >
+                        {job.bay?.bayName ?? (job.bayId ? t("yard.bayNumber", { n: job.bayId }) : t("yard.noBay"))} ✏️
+                      </button>
+                    ) : (
+                      <span>{job.bay?.bayName ?? (job.bayId ? t("yard.bayNumber", { n: job.bayId }) : t("yard.noBay"))}</span>
+                    )}
                     <span>{new Date(job.createdAt).toLocaleTimeString(locale)}</span>
                   </div>
+
+                  {reassignFor === job.id && (
+                    <div style={{ margin: "6px 0" }}>
+                      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>{t("yard.selectNewBay")}</div>
+                      <div className="chip-row" style={{ marginBottom: 0 }}>
+                        {bays.map((b) => (
+                          <button
+                            key={b.id}
+                            className={`chip-btn ${job.bayId === b.id ? "active" : ""}`}
+                            style={{ padding: "6px 12px", fontSize: 13 }}
+                            onClick={() => reassignBay(job, b)}
+                          >
+                            {b.bayName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="badges">
                     {job.carType && <span className="badge">{job.carType}</span>}
                     {job.isHighlyDirty && <span className="badge dirty">{t("yard.dirtyBadge")}</span>}
@@ -124,24 +183,35 @@ export default function LiveYard() {
                   </div>
 
                   {col.key === "queued" && (
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                       <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setUpsellFor(job)}>
                         {t("yard.upsellBtn")}
                       </button>
                       <button className="big-btn success" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => startWashing(job)}>
                         {t("yard.startWashingBtn")}
                       </button>
+                      <button className="big-btn danger" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => cancelJob(job)}>
+                        {t("yard.cancelBtn")}
+                      </button>
                     </div>
                   )}
 
                   {col.key === "washing" && (
-                    <button
-                      className="big-btn"
-                      style={{ padding: "10px 14px", fontSize: 14, marginTop: 8 }}
-                      onClick={() => setQualityFor(job)}
-                    >
-                      {t("yard.qualityCheckBtn")}
-                    </button>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                      <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setUpsellFor(job)}>
+                        {t("yard.addServiceBtn")}
+                      </button>
+                      <button
+                        className="big-btn"
+                        style={{ padding: "10px 14px", fontSize: 14 }}
+                        onClick={() => setQualityFor(job)}
+                      >
+                        {t("yard.qualityCheckBtn")}
+                      </button>
+                      <button className="big-btn danger" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => cancelJob(job)}>
+                        {t("yard.cancelBtn")}
+                      </button>
+                    </div>
                   )}
 
                   {col.key === "quality" && job.status === "ready" && (
@@ -183,11 +253,7 @@ export default function LiveYard() {
         <UpsellModal
           jobId={upsellFor.id}
           carType={upsellFor.carType}
-          onDone={() => {
-            const job = upsellFor;
-            setUpsellFor(null);
-            if (job.status === "queued") void startWashing(job);
-          }}
+          onDone={() => setUpsellFor(null)}
         />
       )}
 
@@ -197,13 +263,13 @@ export default function LiveYard() {
           plateNumber={qualityFor.plateNumber}
           onClose={() => setQualityFor(null)}
           onDone={() => {
-            setJobs((prev) => prev.map((j) => (j.id === qualityFor.id ? { ...j, status: "ready" } : j)));
+            setJobs((prev) => prev.filter((j) => j.id !== qualityFor.id));
             setQualityFor(null);
           }}
         />
       )}
 
-      {employee?.role === "supervisor" && <CleanlinessGate />}
+      <CleanlinessGate />
     </div>
   );
 }

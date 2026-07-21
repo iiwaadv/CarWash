@@ -60,6 +60,12 @@ export const ar = {
     deliverBtn: "✅ تسليم للعميل",
     checkingInProgress: "...جاري الفحص",
     noCars: "لا توجد سيارات",
+    cancelBtn: "❌ إلغاء الغسيل",
+    cancelConfirm: 'هل تريد إلغاء غسيل السيارة {{plate}}؟',
+    reassignBayBtn: "🅿️ تغيير الموقف",
+    selectNewBay: "اختر الموقف الجديد",
+    addServiceBtn: "🛍️ إضافة خدمة",
+    close: "إغلاق",
   },
   idleLock: {
     title: "الشاشة مقفلة لحماية بيانات {{name}}",

@@ -131,7 +131,9 @@ export default function QualityCheckModal({
         await sendFeedback(isFurious);
       }
 
-      await queueJobPatch(jobId, { status: "ready" }, token);
+      // Finishing the quality check now hands the car straight to the customer:
+      // no intermediate "ready" waiting step, so there's no delay or extra tap.
+      await queueJobPatch(jobId, { status: "delivered" }, token);
       onDone();
     } finally {
       setSubmitting(false);

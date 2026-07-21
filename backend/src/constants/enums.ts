@@ -12,6 +12,7 @@ export const JOB_STATUS = [
   "quality_check",
   "ready",
   "delivered",
+  "cancelled",
 ] as const;
 export const QUALITY_STAGE = ["pre_wash_photos", "post_wash_checklist"] as const;
 export const UPSELL_STATUS = ["accepted", "rejected"] as const;
