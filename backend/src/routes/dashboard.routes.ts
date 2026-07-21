@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { recentAlerts } from "../utils/alerts";
+import { endOfRiyadhDay, riyadhDayLabel, startOfRiyadhDay } from "../utils/riyadh";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get("/pending-decisions", requireAuth, requireRole("manager"), async (_re
   res.json(incidents);
 });
 
-// GET /api/dashboard/kpis -> executive summary indicators
+// GET /api/dashboard/kpis -> executive summary indicators (cumulative — unchanged)
 router.get("/kpis", requireAuth, requireRole("manager"), async (_req, res) => {
   const [reports, qualityLogs, upsellLogs, feedback, incidents, overdueMaintenanceSchedules] = await Promise.all([
     prisma.shiftInventoryReport.findMany(),
@@ -58,6 +59,123 @@ router.get("/kpis", requireAuth, requireRole("manager"), async (_req, res) => {
     pendingIncidents,
     shiftReportsCompleted: reports.length,
     overdueMaintenanceSchedules,
+  });
+});
+
+// GET /api/dashboard/daily -> لوحة اليوم حسب توقيت الرياض (لا يحذف بيانات قديمة)
+router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
+  const dayStart = startOfRiyadhDay();
+  const dayEnd = endOfRiyadhDay();
+  const inToday = { gte: dayStart, lt: dayEnd };
+
+  const [
+    receivedToday,
+    deliveredToday,
+    cancelledToday,
+    queued,
+    washing,
+    readyOrQc,
+    upsellsToday,
+    incidentsToday,
+    feedbackToday,
+    openingsToday,
+    closuresToday,
+    branches,
+    lowStock,
+    dirtyCarReports,
+    activeEmployees,
+  ] = await Promise.all([
+    prisma.jobOrder.count({ where: { createdAt: inToday } }),
+    prisma.jobOrder.count({ where: { status: "delivered", deliveredAt: inToday } }),
+    prisma.jobOrder.count({ where: { status: "cancelled", updatedAt: inToday } }),
+    prisma.jobOrder.count({ where: { status: "queued" } }),
+    prisma.jobOrder.count({ where: { status: "washing" } }),
+    prisma.jobOrder.count({ where: { status: { in: ["quality_check", "ready"] } } }),
+    prisma.upsellingLog.findMany({
+      where: { createdAt: inToday },
+      include: { service: true },
+    }),
+    prisma.maintenanceIncident.count({ where: { createdAt: inToday } }),
+    prisma.customerFeedback.count({ where: { createdAt: inToday } }),
+    prisma.shiftOpening.count({ where: { shiftDate: inToday } }),
+    prisma.shiftInventoryReport.count({ where: { shiftDate: inToday } }),
+    prisma.branch.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, status: true },
+    }),
+    prisma.branchInventoryBalance.findMany({
+      where: { quantity: { lte: 10 } },
+      include: { item: { select: { name: true, unit: true } }, branch: { select: { name: true } } },
+      take: 20,
+    }),
+    prisma.maintenanceIncident.count({
+      where: { createdAt: inToday, type: "customer_car_damage" },
+    }),
+    prisma.employee.count({ where: { isActive: true, role: { not: "manager" } } }),
+  ]);
+
+  const liveByBranch = await Promise.all(
+    branches.map(async (b) => {
+      const [q, w, r, active, received, delivered] = await Promise.all([
+        prisma.jobOrder.count({ where: { branchId: b.id, status: "queued" } }),
+        prisma.jobOrder.count({ where: { branchId: b.id, status: "washing" } }),
+        prisma.jobOrder.count({ where: { branchId: b.id, status: { in: ["quality_check", "ready"] } } }),
+        prisma.jobOrder.count({
+          where: { branchId: b.id, status: { in: ["queued", "washing", "quality_check", "ready"] } },
+        }),
+        prisma.jobOrder.count({ where: { branchId: b.id, createdAt: inToday } }),
+        prisma.jobOrder.count({ where: { branchId: b.id, status: "delivered", deliveredAt: inToday } }),
+      ]);
+      return {
+        branchId: b.id,
+        branchName: b.name,
+        status: b.status,
+        queued: q,
+        washing: w,
+        ready: r,
+        activeInside: active,
+        receivedToday: received,
+        deliveredToday: delivered,
+      };
+    })
+  );
+
+  const upsellAccepted = upsellsToday.filter((u) => u.status === "accepted");
+  const upsellRevenue = upsellAccepted.reduce((s, u) => s + (u.service?.basePrice ?? 0), 0);
+  const upsellBonus = upsellAccepted.reduce((s, u) => s + u.bonusAmount, 0);
+
+  res.json({
+    timezone: "Asia/Riyadh",
+    dayLabel: riyadhDayLabel(),
+    dayStart,
+    dayEnd,
+    totals: {
+      receivedToday,
+      deliveredToday,
+      cancelledToday,
+      queued,
+      washing,
+      ready: readyOrQc,
+      activeInside: queued + washing + readyOrQc,
+      upsellAttempts: upsellsToday.length,
+      upsellAccepted: upsellAccepted.length,
+      upsellRevenue,
+      upsellBonus,
+      incidentsToday,
+      dirtyCarReports,
+      feedbackToday,
+      openingsToday,
+      closuresToday,
+      activeEmployees,
+      lowStockCount: lowStock.length,
+    },
+    byBranch: liveByBranch,
+    lowStock: lowStock.map((row) => ({
+      item: row.item.name,
+      unit: row.item.unit,
+      branch: row.branch.name,
+      quantity: row.quantity,
+    })),
   });
 });
 

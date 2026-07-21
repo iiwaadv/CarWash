@@ -65,6 +65,111 @@ router.get("/live", requireAuth, async (_req, res) => {
   res.json(cards);
 });
 
+// GET /api/branches/:id/detail -> صفحة تفاصيل فرع (إضافة فوق الأساس بدون تغييره)
+router.get("/:id/detail", requireAuth, requireRole("manager"), async (req, res) => {
+  const id = Number(req.params.id);
+  const branch = await prisma.branch.findUnique({ where: { id } });
+  if (!branch) return res.status(404).json({ error: "Branch not found" });
+
+  const [bays, employees, equipmentCount, activeJobs, jobsByStatus, recentUpsells, recentIncidents, openings, closures, inventory] =
+    await Promise.all([
+      prisma.bay.findMany({
+        where: { branchId: id },
+        include: {
+          equipment: { where: { isActive: true } },
+          jobOrders: {
+            where: { status: { in: ["queued", "washing", "quality_check", "ready"] } },
+            select: { id: true, plateNumber: true, status: true },
+          },
+        },
+        orderBy: { id: "asc" },
+      }),
+      prisma.employee.findMany({
+        where: { branchId: id },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          isActive: true,
+          defaultBayId: true,
+          defaultBay: { select: { bayName: true } },
+        },
+        orderBy: { id: "asc" },
+      }),
+      prisma.bayEquipment.count({ where: { isActive: true, bay: { branchId: id } } }),
+      prisma.jobOrder.count({
+        where: { branchId: id, status: { in: ["queued", "washing", "quality_check", "ready"] } },
+      }),
+      prisma.jobOrder.groupBy({
+        by: ["status"],
+        where: { branchId: id, status: { in: ["queued", "washing", "quality_check", "ready", "delivered", "cancelled"] } },
+        _count: true,
+      }),
+      prisma.upsellingLog.findMany({
+        where: { job: { branchId: id }, status: "accepted" },
+        include: {
+          service: true,
+          employee: { select: { name: true } },
+          job: { select: { plateNumber: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      }),
+      prisma.maintenanceIncident.findMany({
+        where: { branchId: id },
+        include: { bay: true, equipment: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.shiftOpening.findMany({
+        where: { branchId: id },
+        include: { supervisor: { select: { name: true } } },
+        orderBy: { shiftDate: "desc" },
+        take: 15,
+      }),
+      prisma.shiftInventoryReport.findMany({
+        where: { branchId: id },
+        include: { supervisor: { select: { name: true } } },
+        orderBy: { shiftDate: "desc" },
+        take: 15,
+      }),
+      prisma.branchInventoryBalance.findMany({
+        where: { branchId: id },
+        include: { item: true },
+      }),
+    ]);
+
+  const occupiedBays = bays.filter((b) => b.jobOrders.length > 0).length;
+  const freeBays = bays.length - occupiedBays;
+
+  res.json({
+    branch,
+    counts: {
+      bays: bays.length,
+      occupiedBays,
+      freeBays,
+      equipment: equipmentCount,
+      employees: employees.length,
+      activeEmployees: employees.filter((e) => e.isActive).length,
+      activeJobs,
+    },
+    jobsByStatus: Object.fromEntries(jobsByStatus.map((g) => [g.status, g._count])),
+    bays: bays.map((b) => ({
+      id: b.id,
+      bayName: b.bayName,
+      equipment: b.equipment.map((e) => ({ id: e.id, name: e.name })),
+      occupied: b.jobOrders.length > 0,
+      cars: b.jobOrders,
+    })),
+    employees,
+    recentUpsells,
+    recentIncidents,
+    openings,
+    closures,
+    inventory,
+  });
+});
+
 const TIME_HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "صيغة الوقت يجب أن تكون HH:MM");
 
 const createSchema = z.object({
