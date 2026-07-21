@@ -20,6 +20,7 @@ export const ar = {
   nav: {
     overview: "🏠 الرقابة التشغيلية",
     decisions: "📥 القرارات المعلقة",
+    tasks: "📋 المهام والتنبيهات",
     maintenance: "🛠️ الصيانة الوقائية",
     feedback: "🎵 تقييمات العملاء",
     inventory: "📦 المخزون والبيع",
@@ -174,6 +175,24 @@ export const ar = {
     deactivate: "إيقاف",
     editName: "تعديل الاسم",
     newPinPlaceholder: "PIN جديد",
+  },
+  tasks: {
+    title: "📋 المهام والتنبيهات",
+    filterAll: "الكل",
+    status: {
+      new: "جديدة",
+      acknowledged: "تم الاستلام",
+      in_progress: "جاري العمل",
+      done: "تم الإنجاز",
+    },
+    unassigned: "غير محددة",
+    newTaskBtn: "➕ إضافة مهمة جديدة",
+    titleLabel: "عنوان المهمة",
+    descriptionLabel: "التفاصيل (اختياري)",
+    assignToLabel: "تكليف",
+    priorityNormal: "عادية",
+    priorityUrgent: "🚨 عاجلة",
+    empty: "لا توجد مهام في هذا التصنيف",
   },
   branches: {
     title: "🏢 إدارة الفروع",

@@ -22,6 +22,8 @@ export const REJECTION_REASON = [
   "old_car",
   "loyalty_program",
 ] as const;
+export const TASK_STATUS = ["new", "acknowledged", "in_progress", "done"] as const;
+export const TASK_PRIORITY = ["normal", "urgent"] as const;
 export const INCIDENT_TYPE = ["equipment_breakdown", "customer_car_damage"] as const;
 export const INCIDENT_SEVERITY = ["critical_stop", "partial_slow"] as const;
 export const INCIDENT_STATUS = ["pending_approval", "approved", "rejected"] as const;

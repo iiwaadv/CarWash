@@ -320,6 +320,22 @@ button {
   background: rgba(178, 58, 46, 0.16);
   color: var(--danger);
 }
+.status-badge-new {
+  background: rgba(178, 58, 46, 0.16);
+  color: var(--danger);
+}
+.status-badge-acknowledged {
+  background: rgba(184, 134, 11, 0.16);
+  color: var(--warning);
+}
+.status-badge-in_progress {
+  background: rgba(46, 108, 178, 0.16);
+  color: #2e6cb2;
+}
+.status-badge-done {
+  background: rgba(46, 178, 108, 0.16);
+  color: var(--success);
+}
 
 .fab {
   position: fixed;

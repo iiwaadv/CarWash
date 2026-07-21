@@ -5,6 +5,7 @@ import { useSync } from "../context/SyncContext";
 import MaintenanceModal from "./MaintenanceModal";
 import ShiftClosureWizard from "../pages/ShiftClosureWizard";
 import ShiftOpeningWizard from "./ShiftOpeningWizard";
+import TasksModal from "./TasksModal";
 
 function getGreetingKey(date: Date = new Date()): string {
   const hour = date.getHours();
@@ -21,6 +22,7 @@ export default function TopBar() {
   const [showOpening, setShowOpening] = useState(false);
   const [showClosure, setShowClosure] = useState(false);
   const [showMaintenance, setShowMaintenance] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
   const [greetingKey, setGreetingKey] = useState(getGreetingKey());
 
   useEffect(() => {
@@ -69,6 +71,9 @@ export default function TopBar() {
         >
           🌐 {t("topbar.language")}
         </button>
+        <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowTasks(true)}>
+          {t("topbar.tasksBtn")}
+        </button>
         <button className="big-btn secondary" style={{ padding: "10px 14px", fontSize: 14 }} onClick={() => setShowMaintenance(true)}>
           {t("topbar.reportIncidentBtn")}
         </button>
@@ -83,6 +88,7 @@ export default function TopBar() {
         </button>
       </div>
 
+      {showTasks && <TasksModal onClose={() => setShowTasks(false)} />}
       {showOpening && <ShiftOpeningWizard onClose={() => setShowOpening(false)} />}
       {showClosure && <ShiftClosureWizard onClose={() => setShowClosure(false)} />}
       {showMaintenance && <MaintenanceModal onClose={() => setShowMaintenance(false)} />}

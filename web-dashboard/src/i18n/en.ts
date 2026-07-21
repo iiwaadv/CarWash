@@ -20,6 +20,7 @@ export const en = {
   nav: {
     overview: "🏠 Operational Control",
     decisions: "📥 Pending Decisions",
+    tasks: "📋 Tasks & Alerts",
     maintenance: "🛠️ Preventive Maintenance",
     feedback: "🎵 Customer Feedback",
     inventory: "📦 Inventory & Upselling",
@@ -174,6 +175,24 @@ export const en = {
     deactivate: "Deactivate",
     editName: "Edit name",
     newPinPlaceholder: "New PIN",
+  },
+  tasks: {
+    title: "📋 Tasks & Alerts",
+    filterAll: "All",
+    status: {
+      new: "New",
+      acknowledged: "Acknowledged",
+      in_progress: "In progress",
+      done: "Done",
+    },
+    unassigned: "Unassigned",
+    newTaskBtn: "➕ Add new task",
+    titleLabel: "Task title",
+    descriptionLabel: "Details (optional)",
+    assignToLabel: "Assign to",
+    priorityNormal: "Normal",
+    priorityUrgent: "🚨 Urgent",
+    empty: "No tasks in this filter",
   },
   branches: {
     title: "🏢 Branch Management",

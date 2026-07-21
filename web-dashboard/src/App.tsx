@@ -10,10 +10,12 @@ import Login from "./pages/Login";
 import Overview from "./pages/Overview";
 import PendingDecisions from "./pages/PendingDecisions";
 import PreventiveMaintenance from "./pages/PreventiveMaintenance";
+import Tasks from "./pages/Tasks";
 
 const TABS = [
   { id: "overview", labelKey: "nav.overview", component: Overview },
   { id: "decisions", labelKey: "nav.decisions", component: PendingDecisions },
+  { id: "tasks", labelKey: "nav.tasks", component: Tasks },
   { id: "maintenance", labelKey: "nav.maintenance", component: PreventiveMaintenance },
   { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
   { id: "inventory", labelKey: "nav.inventory", component: Inventory },
