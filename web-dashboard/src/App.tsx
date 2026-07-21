@@ -93,7 +93,10 @@ function Shell() {
   return (
     <div className="app-shell">
       <div className="sidebar">
-        <div className="brand">{t("brand.nameWithEmoji")}</div>
+        <div className="sidebar-header">
+          <img src="/ejaz-logo.png" alt="إيجاز" className="sidebar-logo" />
+          <div className="brand">{t("brand.name")}</div>
+        </div>
         <div className="sidebar-nav">
           {groups.map((groupKey) => (
             <div key={groupKey}>

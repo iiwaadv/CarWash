@@ -53,6 +53,7 @@ export default function Employees() {
   const [defaultBayId, setDefaultBayId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [createPerms, setCreatePerms] = useState<string[]>([...DEFAULT_BM_PERMS]);
+  const [manageAllBranches, setManageAllBranches] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resetPinFor, setResetPinFor] = useState<number | null>(null);
   const [newPin, setNewPin] = useState("");
@@ -100,12 +101,14 @@ export default function Employees() {
         pinCode: pin,
         defaultBayId: defaultBayId ? Number(defaultBayId) : null,
         permissionsJson: role === "branch_manager" ? JSON.stringify(createPerms) : null,
+        managedBranchIdsJson: role === "branch_manager" ? (manageAllBranches ? "all" : JSON.stringify([branchId])) : null,
       });
       setName("");
       setJobTitle("");
       setPin("");
       setDefaultBayId("");
       setCreatePerms([...DEFAULT_BM_PERMS]);
+      setManageAllBranches(true);
       load();
     } catch (err: any) {
       setError(err.message);
@@ -152,6 +155,7 @@ export default function Employees() {
         nextRole === "branch_manager"
           ? emp.permissionsJson ?? JSON.stringify(DEFAULT_BM_PERMS)
           : null,
+      managedBranchIdsJson: nextRole === "branch_manager" ? emp.managedBranchIdsJson ?? "all" : null,
     });
     load();
   }
@@ -227,6 +231,15 @@ export default function Employees() {
 
           {role === "branch_manager" && (
             <>
+              <div style={{ marginTop: 10, fontWeight: 700, fontSize: 13 }}>{t("employees.branchScope")}</div>
+              <label className="perm-chip" style={{ marginTop: 8, maxWidth: 280 }}>
+                <input
+                  type="checkbox"
+                  checked={manageAllBranches}
+                  onChange={(e) => setManageAllBranches(e.target.checked)}
+                />
+                {t("employees.allBranchesScope")}
+              </label>
               <div style={{ marginTop: 10, fontWeight: 700, fontSize: 13 }}>{t("employees.permsTitle")}</div>
               <div className="perm-grid">
                 {PERM_KEYS.map((key) => (

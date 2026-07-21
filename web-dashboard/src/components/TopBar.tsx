@@ -27,7 +27,6 @@ export default function TopBar() {
   return (
     <div className="dashboard-topbar">
       <div className="dashboard-topbar-left">
-        <img src="/ejaz-logo.png" alt="إيجاز" className="ejaz-logo" />
         <div className="greeting">{t(greetingKey)}</div>
       </div>
       <div className="dashboard-topbar-right">

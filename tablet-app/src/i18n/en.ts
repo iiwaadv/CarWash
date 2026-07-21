@@ -80,6 +80,7 @@ export const en = {
     overdueBody: "Photograph the restrooms, waiting areas, and yard clean and fresh to unlock the screen and continue working.",
     submitBtn: "Photos taken — Unlock",
     photoLabel: "Cleanliness",
+    submitFailed: "Could not unlock. Check connection and try again.",
   },
   newCar: {
     title: "🚗 Add new car",

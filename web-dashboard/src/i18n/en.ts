@@ -192,6 +192,8 @@ export const en = {
   },
   branchDetail: {
     title: "Branch details",
+    allBranches: "All branches",
+    openBranch: "Open branch details",
     bays: "Bays",
     occupiedFree: "Occupied / Free",
     equipment: "Equipment",
@@ -377,7 +379,7 @@ export const en = {
     pinLengthError: "PIN must be 4 digits",
     roles: {
       manager: "General Manager",
-      branch_manager: "Branch manager (ops & maintenance)",
+      branch_manager: "Branches manager (maintenance & ops — all branches)",
       supervisor: "Supervisor",
       washer: "Washer",
       detailer: "Detailer",
@@ -399,10 +401,12 @@ export const en = {
     helpTitle: "How permissions work",
     helpManager: "General manager: signs in with the dashboard PIN and can see every section and grant access.",
     helpBranchManager:
-      "Branch manager: mainly for maintenance/operations. Create with role «Branch manager», then enable the needed permissions.",
+      "Branches manager: handles maintenance/ops across ALL branches. Create with role «Branches manager» and keep scope on «All branches».",
     helpLogin:
-      "Branch manager login: same dashboard URL, enter their PIN — only granted sections appear (e.g. pending decisions & maintenance).",
-    permsTitle: "Branch manager permissions",
+      "Branches manager login: same management URL, enter their PIN — only granted sections appear.",
+    permsTitle: "Branches manager permissions",
+    branchScope: "Branch scope",
+    allBranchesScope: "All branches",
     editPerms: "Edit permissions",
     perms: {
       maintenance: "Maintenance, decisions & equipment",
