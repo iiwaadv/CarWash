@@ -461,6 +461,8 @@ export const ar = {
     incidents: "بلاغات أعطال",
     shiftClosures: "إغلاقات وردية",
     exportCsv: "تصدير CSV",
+    exportExcel: "تصدير Excel",
+    exportPdf: "تصدير PDF",
     occupancyPct: "نسبة الإشغال",
     avgCycleMinutes: "متوسط الدورة (د)",
     byBranch: "ملخص حسب الفرع",

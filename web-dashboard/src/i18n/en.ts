@@ -461,6 +461,8 @@ export const en = {
     incidents: "Breakdown reports",
     shiftClosures: "Shift closures",
     exportCsv: "Export CSV",
+    exportExcel: "Export Excel",
+    exportPdf: "Export PDF",
     occupancyPct: "Occupancy %",
     avgCycleMinutes: "Avg cycle (min)",
     byBranch: "Summary by branch",

@@ -74,7 +74,7 @@ export default function Reports() {
   const [to, setTo] = useState(() => toInputDate(new Date()));
   const [data, setData] = useState<ReportSummary | null>(null);
   const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<"csv" | "xlsx" | "pdf" | null>(null);
 
   useEffect(() => {
     apiFetch("/api/branches", token).then(setBranches);
@@ -97,10 +97,10 @@ export default function Reports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function exportCsv() {
-    setExporting(true);
+  async function downloadFile(format: "csv" | "xlsx") {
+    setExporting(format);
     try {
-      const qs = new URLSearchParams({ from, to });
+      const qs = new URLSearchParams({ from, to, format });
       if (branchId) qs.set("branchId", branchId);
       const res = await fetch(`${API_BASE}/api/reports/export?${qs}`, {
         headers: {
@@ -113,15 +113,117 @@ export default function Reports() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `report-${from}-${to}.csv`;
+      a.download = `ejaz-report-${from}-${to}.${format === "xlsx" ? "xlsx" : "csv"}`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
-      setExporting(false);
+      setExporting(null);
+    }
+  }
+
+  async function exportPdf() {
+    setExporting("pdf");
+    try {
+      let report = data;
+      if (!report) {
+        const qs = new URLSearchParams({ from, to });
+        if (branchId) qs.set("branchId", branchId);
+        report = await apiFetch(`/api/reports/summary?${qs}`, token);
+        setData(report);
+      }
+      if (!report) return;
+
+      const html2pdf = (await import("html2pdf.js")).default;
+      const branchName =
+        branches.find((b) => String(b.id) === branchId)?.name ?? t("reports.allBranches");
+      const k = report.kpis;
+      const el = document.createElement("div");
+      el.dir = i18n.language === "ar" ? "rtl" : "ltr";
+      el.style.cssText =
+        "font-family: Tajawal, Arial, sans-serif; padding: 24px; color: #221c13; background: #fff; width: 800px;";
+      el.innerHTML = `
+        <h1 style="color:#a87f1f;margin:0 0 8px;font-size:22px;">${t("brand.name")}</h1>
+        <h2 style="margin:0 0 16px;font-size:18px;">${t("reports.title")}</h2>
+        <p style="margin:0 0 16px;color:#79705f;">${from} → ${to} · ${branchName}</p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:13px;">
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.totalJobs")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.totalJobs}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.delivered")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.deliveredCount}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.cancelled")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.cancelledCount}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.upsellRevenue")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.estimatedUpsellRevenue.toFixed(0)}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.totalBonus")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.totalBonus.toFixed(2)}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.maintenanceCost")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.maintenanceCost.toFixed(0)}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.incidents")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.incidents}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #e7dfcb;">${t("reports.furious")}</td><td style="padding:6px;border:1px solid #e7dfcb;font-weight:700;">${k.furiousCount}</td></tr>
+        </table>
+        <h3 style="font-size:15px;margin:12px 0 8px;">${t("reports.byBranch")}</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #e7dfcb;padding:6px;background:#faf7ef;">${t("reports.colBranch")}</th>
+              <th style="border:1px solid #e7dfcb;padding:6px;background:#faf7ef;">${t("reports.colJobs")}</th>
+              <th style="border:1px solid #e7dfcb;padding:6px;background:#faf7ef;">${t("reports.delivered")}</th>
+              <th style="border:1px solid #e7dfcb;padding:6px;background:#faf7ef;">${t("reports.cancelled")}</th>
+              <th style="border:1px solid #e7dfcb;padding:6px;background:#faf7ef;">${t("reports.totalBonus")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${report.byBranch
+              .map(
+                (b) => `<tr>
+              <td style="border:1px solid #e7dfcb;padding:6px;">${b.branchName}</td>
+              <td style="border:1px solid #e7dfcb;padding:6px;">${b.jobs}</td>
+              <td style="border:1px solid #e7dfcb;padding:6px;">${b.delivered}</td>
+              <td style="border:1px solid #e7dfcb;padding:6px;">${b.cancelled}</td>
+              <td style="border:1px solid #e7dfcb;padding:6px;">${b.bonus.toFixed(2)}</td>
+            </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+        <h3 style="font-size:15px;margin:12px 0 8px;">${t("reports.recentJobs")}</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #e7dfcb;padding:5px;background:#faf7ef;">${t("reports.colPlate")}</th>
+              <th style="border:1px solid #e7dfcb;padding:5px;background:#faf7ef;">${t("reports.colBranch")}</th>
+              <th style="border:1px solid #e7dfcb;padding:5px;background:#faf7ef;">${t("reports.colStatus")}</th>
+              <th style="border:1px solid #e7dfcb;padding:5px;background:#faf7ef;">${t("reports.colDate")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${report.recentJobs
+              .slice(0, 40)
+              .map(
+                (j) => `<tr>
+              <td style="border:1px solid #e7dfcb;padding:5px;">${j.plateNumber}</td>
+              <td style="border:1px solid #e7dfcb;padding:5px;">${j.branch.name}</td>
+              <td style="border:1px solid #e7dfcb;padding:5px;">${j.status}</td>
+              <td style="border:1px solid #e7dfcb;padding:5px;">${new Date(j.createdAt).toLocaleString(locale)}</td>
+            </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+      document.body.appendChild(el);
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename: `ejaz-report-${from}-${to}.pdf`,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(el)
+        .save();
+      document.body.removeChild(el);
+    } finally {
+      setExporting(null);
     }
   }
 
   const k = data?.kpis;
+  const busy = exporting !== null;
 
   return (
     <div>
@@ -139,11 +241,17 @@ export default function Reports() {
               </option>
             ))}
           </select>
-          <button className="btn" onClick={load} disabled={loading}>
+          <button className="btn" onClick={load} disabled={loading || busy}>
             {loading ? t("common.loading") : t("reports.refresh")}
           </button>
-          <button className="btn secondary" onClick={exportCsv} disabled={exporting}>
-            {exporting ? t("common.loading") : t("reports.exportCsv")}
+          <button className="btn secondary" onClick={() => downloadFile("xlsx")} disabled={busy}>
+            {exporting === "xlsx" ? t("common.loading") : t("reports.exportExcel")}
+          </button>
+          <button className="btn secondary" onClick={exportPdf} disabled={busy}>
+            {exporting === "pdf" ? t("common.loading") : t("reports.exportPdf")}
+          </button>
+          <button className="btn secondary" onClick={() => downloadFile("csv")} disabled={busy}>
+            {exporting === "csv" ? t("common.loading") : t("reports.exportCsv")}
           </button>
         </div>
       </div>

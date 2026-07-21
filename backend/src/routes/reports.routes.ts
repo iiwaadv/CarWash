@@ -193,12 +193,7 @@ router.get("/summary", requireAuth, requireRole("manager"), async (req, res) => 
   });
 });
 
-// CSV export — additive on top of summary
-router.get("/export", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
-  const branchId = req.query.branchId ? Number(req.query.branchId) : undefined;
-  const from = req.query.from ? new Date(String(req.query.from)) : daysAgo(7);
-  const to = req.query.to ? new Date(String(req.query.to)) : new Date();
-
+async function loadExportRows(branchId: number | undefined, from: Date, to: Date) {
   const [jobs, upsells, incidents] = await Promise.all([
     prisma.jobOrder.findMany({
       where: { createdAt: { gte: from, lte: to }, ...(branchId ? { branchId } : {}) },
@@ -225,6 +220,143 @@ router.get("/export", requireAuth, requireRole("manager", "branch_manager"), asy
       take: 2000,
     }),
   ]);
+  return { jobs, upsells, incidents };
+}
+
+// GET /api/reports/export?format=csv|xlsx&from=&to=&branchId=
+router.get("/export", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
+  const format = String(req.query.format ?? "csv").toLowerCase();
+  const branchId = req.query.branchId ? Number(req.query.branchId) : undefined;
+  const from = req.query.from ? new Date(String(req.query.from)) : daysAgo(7);
+  const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+  const { jobs, upsells, incidents } = await loadExportRows(branchId, from, to);
+
+  if (format === "xlsx") {
+    const ExcelJS = await import("exceljs");
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Ejaz Car Wash";
+    wb.created = new Date();
+
+    const accepted = upsells.filter((u) => u.status === "accepted");
+    const kpis = wb.addWorksheet("KPIs");
+    kpis.columns = [
+      { header: "المؤشر", key: "metric", width: 28 },
+      { header: "القيمة", key: "value", width: 18 },
+    ];
+    kpis.addRows([
+      { metric: "من", value: from.toISOString().slice(0, 10) },
+      { metric: "إلى", value: to.toISOString().slice(0, 10) },
+      { metric: "إجمالي الطلبات", value: jobs.length },
+      { metric: "مسلّمة", value: jobs.filter((j) => j.status === "delivered").length },
+      { metric: "ملغاة", value: jobs.filter((j) => j.status === "cancelled").length },
+      { metric: "بيع إضافي مقبول", value: accepted.length },
+      { metric: "بونص", value: accepted.reduce((s, u) => s + u.bonusAmount, 0) },
+      {
+        metric: "إيراد إضافي تقديري",
+        value: accepted.reduce((s, u) => s + (u.service?.basePrice ?? 0), 0),
+      },
+      { metric: "تكلفة صيانة", value: incidents.reduce((s, i) => s + (i.repairCost || 0), 0) },
+      { metric: "بلاغات", value: incidents.length },
+    ]);
+
+    const jobsSheet = wb.addWorksheet("الطلبات");
+    jobsSheet.columns = [
+      { header: "المعرف", key: "id", width: 10 },
+      { header: "الفرع", key: "branch", width: 18 },
+      { header: "اللوحة", key: "plate", width: 14 },
+      { header: "الحالة", key: "status", width: 14 },
+      { header: "الموقف", key: "bay", width: 14 },
+      { header: "التاريخ", key: "createdAt", width: 22 },
+    ];
+    for (const j of jobs) {
+      jobsSheet.addRow({
+        id: j.id,
+        branch: j.branch.name,
+        plate: j.plateNumber,
+        status: j.status,
+        bay: j.bay?.bayName ?? "",
+        createdAt: j.createdAt.toISOString(),
+      });
+    }
+
+    const upsellSheet = wb.addWorksheet("البيع الإضافي");
+    upsellSheet.columns = [
+      { header: "المعرف", key: "id", width: 10 },
+      { header: "الفرع", key: "branch", width: 18 },
+      { header: "اللوحة", key: "plate", width: 14 },
+      { header: "الخدمة", key: "service", width: 20 },
+      { header: "الحالة", key: "status", width: 12 },
+      { header: "البونص", key: "bonus", width: 12 },
+      { header: "الموظف", key: "employee", width: 18 },
+      { header: "التاريخ", key: "createdAt", width: 22 },
+    ];
+    for (const u of upsells) {
+      upsellSheet.addRow({
+        id: u.id,
+        branch: u.job.branch.name,
+        plate: u.job.plateNumber,
+        service: u.service.serviceName,
+        status: u.status,
+        bonus: u.bonusAmount,
+        employee: u.employee?.name ?? "",
+        createdAt: u.createdAt.toISOString(),
+      });
+    }
+
+    const incSheet = wb.addWorksheet("الصيانة");
+    incSheet.columns = [
+      { header: "المعرف", key: "id", width: 10 },
+      { header: "الفرع", key: "branch", width: 18 },
+      { header: "الوصف", key: "desc", width: 40 },
+      { header: "الحالة", key: "status", width: 14 },
+      { header: "التكلفة", key: "cost", width: 12 },
+      { header: "الموقف", key: "bay", width: 14 },
+      { header: "الجهاز", key: "equipment", width: 18 },
+      { header: "التاريخ", key: "createdAt", width: 22 },
+    ];
+    for (const i of incidents) {
+      incSheet.addRow({
+        id: i.id,
+        branch: i.branch.name,
+        desc: i.description,
+        status: i.status,
+        cost: i.repairCost,
+        bay: i.bay?.bayName ?? "",
+        equipment: i.equipment?.name ?? "",
+        createdAt: i.createdAt.toISOString(),
+      });
+    }
+
+    const branchMap = new Map<number, { name: string; jobs: number; delivered: number; cancelled: number }>();
+    for (const j of jobs) {
+      const cur = branchMap.get(j.branchId) ?? {
+        name: j.branch.name,
+        jobs: 0,
+        delivered: 0,
+        cancelled: 0,
+      };
+      cur.jobs += 1;
+      if (j.status === "delivered") cur.delivered += 1;
+      if (j.status === "cancelled") cur.cancelled += 1;
+      branchMap.set(j.branchId, cur);
+    }
+    const branchSheet = wb.addWorksheet("حسب الفرع");
+    branchSheet.columns = [
+      { header: "الفرع", key: "name", width: 20 },
+      { header: "طلبات", key: "jobs", width: 12 },
+      { header: "مسلّمة", key: "delivered", width: 12 },
+      { header: "ملغاة", key: "cancelled", width: 12 },
+    ];
+    for (const row of branchMap.values()) branchSheet.addRow(row);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="ejaz-report.xlsx"`);
+    return res.send(Buffer.from(buffer));
+  }
 
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines: string[] = [];
