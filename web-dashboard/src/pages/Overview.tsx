@@ -128,11 +128,6 @@ export default function Overview() {
   return (
     <div className="overview-page">
       <div className="page-title">{t("overview.title")}</div>
-      {daily && (
-        <div style={{ color: "var(--muted)", marginBottom: 12, fontSize: 13 }}>
-          {t("overview.riyadhDay", { day: daily.dayLabel })} · {daily.timezone}
-        </div>
-      )}
 
       <div className={`alerts-banner ${alerts.length === 0 ? "calm" : ""}`}>
         <div className="alerts-banner-title">{alerts.length === 0 ? t("overview.noAlerts") : t("overview.alertsTitle")}</div>
@@ -150,61 +145,102 @@ export default function Overview() {
       {tot && (
         <div className="section-card compact">
           <div className="section-title">{t("overview.dailyTitle")}</div>
+          {daily && (
+            <div style={{ color: "var(--muted)", marginBottom: 12, fontSize: 13 }}>
+              {t("overview.dayLabel", { day: daily.dayLabel })}
+            </div>
+          )}
+
+          <div className="stat-group-title">{t("overview.groupFlow")}</div>
           <div className="kpi-grid">
-            <div className="kpi-card">
+            <div className="kpi-card tone-in">
+              <div className="kpi-icon">🚗</div>
               <div className="value">{tot.receivedToday}</div>
               <div className="label">{t("overview.receivedToday")}</div>
+              <div className="hint">{t("overview.receivedHint")}</div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card tone-out">
+              <div className="kpi-icon">✅</div>
               <div className="value">{tot.deliveredToday}</div>
               <div className="label">{t("overview.deliveredToday")}</div>
+              <div className="hint">{t("overview.deliveredHint")}</div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card tone-now">
+              <div className="kpi-icon">🏢</div>
               <div className="value">{tot.activeInside}</div>
               <div className="label">{t("overview.insideNow")}</div>
+              <div className="hint">{t("overview.insideHint")}</div>
             </div>
-            <div className="kpi-card">
+          </div>
+
+          <div className="stat-group-title">{t("overview.groupNow")}</div>
+          <div className="kpi-grid">
+            <div className="kpi-card tone-now">
+              <div className="kpi-icon">⏳</div>
               <div className="value">{tot.queued}</div>
               <div className="label">{t("overview.queuedNow")}</div>
+              <div className="hint">{t("overview.queuedHint")}</div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card tone-now">
+              <div className="kpi-icon">💧</div>
               <div className="value">{tot.washing}</div>
               <div className="label">{t("overview.washingNow")}</div>
+              <div className="hint">{t("overview.washingHint")}</div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card tone-now">
+              <div className="kpi-icon">🔎</div>
               <div className="value">{tot.ready}</div>
               <div className="label">{t("overview.readyNow")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.upsellAccepted}</div>
-              <div className="label">{t("overview.upsellsToday")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.upsellRevenue.toFixed(0)}</div>
-              <div className="label">{t("overview.revenueToday")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.incidentsToday}</div>
-              <div className="label">{t("overview.incidentsToday")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.dirtyCarReports}</div>
-              <div className="label">{t("overview.dirtyCarsToday")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.feedbackToday}</div>
-              <div className="label">{t("overview.feedbackToday")}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="value">{tot.activeEmployees}</div>
-              <div className="label">{t("overview.activeStaff")}</div>
+              <div className="hint">{t("overview.readyHint")}</div>
             </div>
             {tot.occupancyPct != null && (
               <div className="kpi-card">
+                <div className="kpi-icon">🅿️</div>
                 <div className="value">{tot.occupancyPct}%</div>
                 <div className="label">{t("overview.occupancyPct")}</div>
+                <div className="hint">{t("overview.occupancyHint")}</div>
               </div>
             )}
+          </div>
+
+          <div className="stat-group-title">{t("overview.groupExtra")}</div>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-icon">🛍️</div>
+              <div className="value">{tot.upsellAccepted}</div>
+              <div className="label">{t("overview.upsellsToday")}</div>
+              <div className="hint">{t("overview.upsellsHint")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-icon">💰</div>
+              <div className="value">{tot.upsellRevenue.toFixed(0)}</div>
+              <div className="label">{t("overview.revenueToday")}</div>
+              <div className="hint">{t("overview.revenueHint")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-icon">🛠️</div>
+              <div className="value">{tot.incidentsToday}</div>
+              <div className="label">{t("overview.incidentsToday")}</div>
+              <div className="hint">{t("overview.incidentsHint")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-icon">⚠️</div>
+              <div className="value">{tot.dirtyCarReports}</div>
+              <div className="label">{t("overview.dirtyCarsToday")}</div>
+              <div className="hint">{t("overview.dirtyHint")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-icon">🎤</div>
+              <div className="value">{tot.feedbackToday}</div>
+              <div className="label">{t("overview.feedbackToday")}</div>
+              <div className="hint">{t("overview.feedbackHint")}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-icon">👷</div>
+              <div className="value">{tot.activeEmployees}</div>
+              <div className="label">{t("overview.activeStaff")}</div>
+              <div className="hint">{t("overview.staffHint")}</div>
+            </div>
             {tot.avgWaitMinutes != null && (
               <div className="kpi-card">
                 <div className="value">{tot.avgWaitMinutes}</div>

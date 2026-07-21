@@ -8,7 +8,7 @@ const router = Router();
  * GET /api/search?q=
  * بحث عام فوق الأساس الحالي: طلبات (لوحة/جوال/فاتورة)، موظفون، فروع، أجهزة، بلاغات.
  */
-router.get("/", requireAuth, requireRole("manager"), async (req, res) => {
+router.get("/", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const q = String(req.query.q ?? "").trim();
   if (q.length < 1) {
     return res.json({

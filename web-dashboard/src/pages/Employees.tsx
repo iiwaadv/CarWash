@@ -17,11 +17,27 @@ interface EmployeeRow {
   name: string;
   role: string;
   jobTitle: string | null;
+  permissionsJson: string | null;
+  managedBranchIdsJson: string | null;
   isActive: boolean;
   branchId: number;
   defaultBayId: number | null;
   branch: { name: string };
   defaultBay: { id: number; bayName: string } | null;
+}
+
+const PERM_KEYS = ["maintenance", "sales", "inventory", "shifts", "reports"] as const;
+
+const DEFAULT_BM_PERMS = [...PERM_KEYS];
+
+function parsePerms(json: string | null): string[] {
+  if (!json) return [...DEFAULT_BM_PERMS];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.map(String) : [...DEFAULT_BM_PERMS];
+  } catch {
+    return [...DEFAULT_BM_PERMS];
+  }
 }
 
 export default function Employees() {
@@ -36,11 +52,13 @@ export default function Employees() {
   const [branchId, setBranchId] = useState<number | null>(null);
   const [defaultBayId, setDefaultBayId] = useState<string>("");
   const [pin, setPin] = useState("");
+  const [createPerms, setCreatePerms] = useState<string[]>([...DEFAULT_BM_PERMS]);
   const [error, setError] = useState<string | null>(null);
   const [resetPinFor, setResetPinFor] = useState<number | null>(null);
   const [newPin, setNewPin] = useState("");
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [permEditId, setPermEditId] = useState<number | null>(null);
 
   const ROLES = [
     { id: "manager", label: t("employees.roles.manager") },
@@ -81,11 +99,13 @@ export default function Employees() {
         branchId,
         pinCode: pin,
         defaultBayId: defaultBayId ? Number(defaultBayId) : null,
+        permissionsJson: role === "branch_manager" ? JSON.stringify(createPerms) : null,
       });
       setName("");
       setJobTitle("");
       setPin("");
       setDefaultBayId("");
+      setCreatePerms([...DEFAULT_BM_PERMS]);
       load();
     } catch (err: any) {
       setError(err.message);
@@ -125,9 +145,40 @@ export default function Employees() {
     load();
   }
 
+  async function changeRole(emp: EmployeeRow, nextRole: string) {
+    await apiFetchJson(`/api/employees/${emp.id}`, token, "PATCH", {
+      role: nextRole,
+      permissionsJson:
+        nextRole === "branch_manager"
+          ? emp.permissionsJson ?? JSON.stringify(DEFAULT_BM_PERMS)
+          : null,
+    });
+    load();
+  }
+
+  async function savePerms(emp: EmployeeRow, perms: string[]) {
+    await apiFetchJson(`/api/employees/${emp.id}`, token, "PATCH", {
+      permissionsJson: JSON.stringify(perms),
+    });
+    load();
+  }
+
+  function toggleCreatePerm(key: string) {
+    setCreatePerms((prev) => (prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]));
+  }
+
   return (
     <div>
       <div className="page-title">{t("employees.title")}</div>
+
+      <div className="role-help">
+        <div>
+          <strong>{t("employees.helpTitle")}</strong>
+        </div>
+        <div>{t("employees.helpManager")}</div>
+        <div>{t("employees.helpBranchManager")}</div>
+        <div>{t("employees.helpLogin")}</div>
+      </div>
 
       <div className="section-card">
         <div className="section-title">{t("employees.addTitle")}</div>
@@ -173,6 +224,25 @@ export default function Employees() {
             />
             <button className="btn">{t("common.add")}</button>
           </div>
+
+          {role === "branch_manager" && (
+            <>
+              <div style={{ marginTop: 10, fontWeight: 700, fontSize: 13 }}>{t("employees.permsTitle")}</div>
+              <div className="perm-grid">
+                {PERM_KEYS.map((key) => (
+                  <label key={key} className="perm-chip">
+                    <input
+                      type="checkbox"
+                      checked={createPerms.includes(key)}
+                      onChange={() => toggleCreatePerm(key)}
+                    />
+                    {t(`employees.perms.${key}`)}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
           {error && <div style={{ color: "var(--danger)", fontSize: 13 }}>{error}</div>}
         </form>
       </div>
@@ -194,6 +264,7 @@ export default function Employees() {
           <tbody>
             {employees.map((emp) => {
               const empBays = bays.filter((b) => b.branchId === emp.branchId);
+              const perms = parsePerms(emp.permissionsJson);
               return (
                 <tr key={emp.id}>
                   <td>
@@ -216,7 +287,51 @@ export default function Employees() {
                       emp.name
                     )}
                   </td>
-                  <td>{ROLES.find((r) => r.id === emp.role)?.label ?? emp.role}</td>
+                  <td>
+                    <select
+                      value={emp.role}
+                      onChange={(e) => changeRole(emp, e.target.value)}
+                      style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)" }}
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                    {emp.role === "branch_manager" && (
+                      <div style={{ marginTop: 8 }}>
+                        {permEditId === emp.id ? (
+                          <div>
+                            <div className="perm-grid">
+                              {PERM_KEYS.map((key) => (
+                                <label key={key} className="perm-chip">
+                                  <input
+                                    type="checkbox"
+                                    checked={perms.includes(key)}
+                                    onChange={() => {
+                                      const next = perms.includes(key)
+                                        ? perms.filter((p) => p !== key)
+                                        : [...perms, key];
+                                      savePerms(emp, next);
+                                    }}
+                                  />
+                                  {t(`employees.perms.${key}`)}
+                                </label>
+                              ))}
+                            </div>
+                            <button className="btn secondary" style={{ marginTop: 6 }} onClick={() => setPermEditId(null)}>
+                              {t("common.close")}
+                            </button>
+                          </div>
+                        ) : (
+                          <button className="btn secondary" onClick={() => setPermEditId(emp.id)}>
+                            {t("employees.editPerms")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td>{emp.jobTitle ?? "—"}</td>
                   <td>{emp.branch?.name}</td>
                   <td>

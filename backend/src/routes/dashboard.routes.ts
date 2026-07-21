@@ -7,7 +7,7 @@ import { endOfRiyadhDay, riyadhDayLabel, startOfRiyadhDay } from "../utils/riyad
 const router = Router();
 
 // GET /api/dashboard/pending-decisions -> "صندوق القرارات المعلقة"
-router.get("/pending-decisions", requireAuth, requireRole("manager"), async (_req, res) => {
+router.get("/pending-decisions", requireAuth, requireRole("manager", "branch_manager"), async (_req, res) => {
   const incidents = await prisma.maintenanceIncident.findMany({
     where: { status: "pending_approval" },
     include: {
@@ -21,7 +21,7 @@ router.get("/pending-decisions", requireAuth, requireRole("manager"), async (_re
 });
 
 // GET /api/dashboard/kpis -> executive summary indicators (cumulative — unchanged)
-router.get("/kpis", requireAuth, requireRole("manager"), async (_req, res) => {
+router.get("/kpis", requireAuth, requireRole("manager", "branch_manager"), async (_req, res) => {
   const [reports, qualityLogs, upsellLogs, feedback, incidents, overdueMaintenanceSchedules] = await Promise.all([
     prisma.shiftInventoryReport.findMany(),
     prisma.qualityLog.findMany({ where: { stage: "post_wash_checklist" } }),
@@ -63,7 +63,7 @@ router.get("/kpis", requireAuth, requireRole("manager"), async (_req, res) => {
 });
 
 // GET /api/dashboard/daily -> لوحة اليوم حسب توقيت الرياض (لا يحذف بيانات قديمة)
-router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
+router.get("/daily", requireAuth, requireRole("manager", "branch_manager"), async (_req, res) => {
   const dayStart = startOfRiyadhDay();
   const dayEnd = endOfRiyadhDay();
   const inToday = { gte: dayStart, lt: dayEnd };
@@ -242,7 +242,7 @@ router.get("/daily", requireAuth, requireRole("manager"), async (_req, res) => {
   });
 });
 
-router.get("/alerts", requireAuth, requireRole("manager"), async (_req, res) => {
+router.get("/alerts", requireAuth, requireRole("manager", "branch_manager"), async (_req, res) => {
   res.json(recentAlerts);
 });
 

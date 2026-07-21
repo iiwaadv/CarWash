@@ -8,7 +8,7 @@ const router = Router();
  * GET /api/customers/center?plate=&phone=
  * مركز عميل/سيارة — تجميع فوق JobOrder الحالي بدون جدول عملاء منفصل.
  */
-router.get("/center", requireAuth, requireRole("manager"), async (req, res) => {
+router.get("/center", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const plate = String(req.query.plate ?? "").trim();
   const phone = String(req.query.phone ?? "").trim();
 

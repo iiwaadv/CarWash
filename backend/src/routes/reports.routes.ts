@@ -17,7 +17,7 @@ function daysAgo(n: number) {
 }
 
 // GET /api/reports/summary?from=&to=&branchId=
-router.get("/summary", requireAuth, requireRole("manager"), async (req, res) => {
+router.get("/summary", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const branchId = req.query.branchId ? Number(req.query.branchId) : undefined;
   const from = req.query.from ? new Date(String(req.query.from)) : daysAgo(7);
   const to = req.query.to ? new Date(String(req.query.to)) : new Date();

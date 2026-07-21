@@ -66,7 +66,7 @@ router.get("/live", requireAuth, async (_req, res) => {
 });
 
 // GET /api/branches/:id/detail -> صفحة تفاصيل فرع (إضافة فوق الأساس بدون تغييره)
-router.get("/:id/detail", requireAuth, requireRole("manager"), async (req, res) => {
+router.get("/:id/detail", requireAuth, requireRole("manager", "branch_manager"), async (req, res) => {
   const id = Number(req.params.id);
   const branch = await prisma.branch.findUnique({ where: { id } });
   if (!branch) return res.status(404).json({ error: "Branch not found" });

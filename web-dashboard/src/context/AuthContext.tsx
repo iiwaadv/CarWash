@@ -6,6 +6,9 @@ export interface ManagerEmployee {
   name: string;
   role: string;
   branchId: number;
+  jobTitle?: string | null;
+  permissionsJson?: string | null;
+  managedBranchIdsJson?: string | null;
 }
 
 interface AuthContextValue {

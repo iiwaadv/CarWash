@@ -54,7 +54,7 @@ router.post("/manager-login", async (req, res) => {
   }
 
   const managers = await prisma.employee.findMany({
-    where: { role: "manager", isActive: true },
+    where: { role: { in: ["manager", "branch_manager"] }, isActive: true },
   });
   const manager = managers.find((e) => verifyPin(pinCode, e.pinCode));
   if (!manager) {
@@ -67,7 +67,18 @@ router.post("/manager-login", async (req, res) => {
     role: manager.role as any,
     name: manager.name,
   });
-  res.json({ token, employee: manager });
+  res.json({
+    token,
+    employee: {
+      id: manager.id,
+      name: manager.name,
+      role: manager.role,
+      branchId: manager.branchId,
+      jobTitle: manager.jobTitle,
+      permissionsJson: manager.permissionsJson,
+      managedBranchIdsJson: manager.managedBranchIdsJson,
+    },
+  });
 });
 
 // Helper endpoint used by seed/employee management to hash a new PIN.
