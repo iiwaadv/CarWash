@@ -8,9 +8,12 @@ import Equipment from "./pages/Equipment";
 import FeedbackPlayer from "./pages/FeedbackPlayer";
 import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
+import Materials from "./pages/Materials";
 import Overview from "./pages/Overview";
 import PendingDecisions from "./pages/PendingDecisions";
 import PreventiveMaintenance from "./pages/PreventiveMaintenance";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import Tasks from "./pages/Tasks";
 
 const TABS = [
@@ -21,6 +24,9 @@ const TABS = [
   { id: "equipment", labelKey: "nav.equipment", component: Equipment },
   { id: "feedback", labelKey: "nav.feedback", component: FeedbackPlayer },
   { id: "inventory", labelKey: "nav.inventory", component: Inventory },
+  { id: "materials", labelKey: "nav.materials", component: Materials },
+  { id: "reports", labelKey: "nav.reports", component: Reports },
+  { id: "settings", labelKey: "nav.settings", component: Settings },
   { id: "employees", labelKey: "nav.employees", component: Employees },
   { id: "branches", labelKey: "nav.branches", component: Branches },
 ];

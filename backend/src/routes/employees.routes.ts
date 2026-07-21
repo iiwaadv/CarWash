@@ -17,7 +17,9 @@ router.get("/", requireAuth, async (req, res) => {
       name: true,
       role: true,
       isActive: true,
+      defaultBayId: true,
       branch: { select: { name: true } },
+      defaultBay: { select: { id: true, bayName: true } },
     },
     orderBy: { id: "asc" },
   });
@@ -29,6 +31,7 @@ const createSchema = z.object({
   name: z.string().min(1),
   role: z.enum(EMPLOYEE_ROLE),
   pinCode: z.string().length(4),
+  defaultBayId: z.number().int().nullable().optional(),
 });
 
 // Managing staff & permissions is a manager-only capability (executive dashboard).
@@ -38,6 +41,7 @@ router.post("/", requireAuth, requireRole("manager"), async (req, res) => {
   const { pinCode, ...rest } = parsed.data;
   const employee = await prisma.employee.create({
     data: { ...rest, pinCode: hashPin(pinCode) },
+    include: { defaultBay: { select: { id: true, bayName: true } }, branch: { select: { name: true } } },
   });
   res.status(201).json({ ...employee, pinCode: undefined });
 });
@@ -47,6 +51,8 @@ const updateSchema = z.object({
   role: z.enum(EMPLOYEE_ROLE).optional(),
   isActive: z.boolean().optional(),
   pinCode: z.string().length(4).optional(),
+  defaultBayId: z.number().int().nullable().optional(),
+  branchId: z.number().int().optional(),
 });
 
 router.patch("/:id", requireAuth, requireRole("manager"), async (req, res) => {
@@ -56,6 +62,7 @@ router.patch("/:id", requireAuth, requireRole("manager"), async (req, res) => {
   const employee = await prisma.employee.update({
     where: { id: Number(req.params.id) },
     data: { ...rest, ...(pinCode ? { pinCode: hashPin(pinCode) } : {}) },
+    include: { defaultBay: { select: { id: true, bayName: true } }, branch: { select: { name: true } } },
   });
   res.json({ ...employee, pinCode: undefined });
 });

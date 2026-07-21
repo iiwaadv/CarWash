@@ -24,6 +24,7 @@ function withComputedFields<T extends { nextDueAt: Date }>(schedule: T) {
 
 // GET /api/maintenance-schedules -> جدول الصيانة الوقائية الدورية لكل المعدات
 // المدير العام يرى كل الفروع، والمشرف يرى فرعه فقط تلقائياً.
+// أيضاً: يُنشئ تلقائياً مهمة تنبيه للفنيين قبل الاستحقاق بـ 3 أيام (مرة واحدة لكل استحقاق).
 router.get("/", requireAuth, async (req, res) => {
   const queryBranchId = req.query.branchId ? Number(req.query.branchId) : undefined;
   const branchId = req.auth!.role === "manager" ? queryBranchId : req.auth!.branchId;
@@ -33,6 +34,35 @@ router.get("/", requireAuth, async (req, res) => {
     include: { branch: { select: { name: true } } },
     orderBy: { nextDueAt: "asc" },
   });
+
+  // تذكير تلقائي: للمعدات المستحقة خلال 3 أيام أو المتأخرة، أنشئ مهمة إن لم توجد مهمة مفتوحة لنفس المعدة.
+  const reminderHorizon = addDays(new Date(), 3);
+  const dueSoon = schedules.filter((s) => s.nextDueAt.getTime() <= reminderHorizon.getTime());
+  for (const s of dueSoon) {
+    const titleMarker = `[PM#${s.id}]`;
+    const existing = await prisma.task.findFirst({
+      where: {
+        branchId: s.branchId,
+        title: { contains: titleMarker },
+        status: { not: "done" },
+      },
+    });
+    if (!existing) {
+      const overdue = s.nextDueAt.getTime() < Date.now();
+      await prisma.task.create({
+        data: {
+          branchId: s.branchId,
+          title: `${titleMarker} صيانة وقائية: ${s.equipmentName}`,
+          description: overdue
+            ? `المعدة متأخرة عن موعد الصيانة. الاستحقاق كان ${s.nextDueAt.toISOString().slice(0, 10)}.`
+            : `تذكير: الصيانة الوقائية مستحقة خلال 3 أيام أو أقل (${s.nextDueAt.toISOString().slice(0, 10)}).`,
+          priority: overdue ? "urgent" : "normal",
+          dueAt: s.nextDueAt,
+          createdById: req.auth!.employeeId,
+        },
+      });
+    }
+  }
 
   res.json(schedules.map(withComputedFields));
 });

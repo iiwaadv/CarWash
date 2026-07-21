@@ -36,6 +36,9 @@ model Branch {
   cleanlinessChecks     CleanlinessCheck[]
   maintenanceSchedules  MaintenanceSchedule[]
   tasks                 Task[]
+  salesTargets          SalesTarget[]
+  inventoryBalances     BranchInventoryBalance[]
+  inventoryMovements    InventoryMovement[]
 
   @@map("branches")
 }
@@ -49,11 +52,12 @@ model Bay {
   bayName  String @map("bay_name")
   bayType  String? @map("bay_type") // normal | vip ...
 
-  branch      Branch               @relation(fields: [branchId], references: [id])
-  assignments BayCrewAssignment[]
-  jobOrders   JobOrder[]
-  equipment   BayEquipment[]
-  incidents   MaintenanceIncident[]
+  branch           Branch               @relation(fields: [branchId], references: [id])
+  assignments      BayCrewAssignment[]
+  jobOrders        JobOrder[]
+  equipment        BayEquipment[]
+  incidents        MaintenanceIncident[]
+  defaultEmployees Employee[]           @relation("EmployeeDefaultBay")
 
   @@map("bays")
 }
@@ -76,14 +80,16 @@ model BayEquipment {
 // 3. الموظفون
 // ---------------------------------------------------------------------------
 model Employee {
-  id       Int     @id @default(autoincrement()) @map("employee_id")
-  branchId Int     @map("branch_id")
-  name     String
-  role     String // manager | supervisor | washer | detailer
-  pinCode  String  @map("pin_code") // hashed 4-digit PIN
-  isActive Boolean @default(true) @map("is_active")
+  id           Int     @id @default(autoincrement()) @map("employee_id")
+  branchId     Int     @map("branch_id")
+  name         String
+  role         String // manager | supervisor | washer | detailer
+  pinCode      String  @map("pin_code") // hashed 4-digit PIN
+  isActive     Boolean @default(true) @map("is_active")
+  defaultBayId Int?    @map("default_bay_id") // ربط العامل بموقف غسيل افتراضي
 
   branch                Branch                 @relation(fields: [branchId], references: [id])
+  defaultBay            Bay?                   @relation("EmployeeDefaultBay", fields: [defaultBayId], references: [id])
   bayAssignments        BayCrewAssignment[]
   inspectedQualityLogs  QualityLog[]           @relation("Inspector")
   shiftInventoryReports ShiftInventoryReport[]
@@ -349,4 +355,70 @@ model MaintenanceIncident {
   receivedBy Employee?     @relation("IncidentReceiver", fields: [receivedById], references: [id])
 
   @@map("maintenance_and_incidents")
+}
+
+// ---------------------------------------------------------------------------
+// أهداف البيع (يومي / أسبوعي / شهري) لكل فرع
+// ---------------------------------------------------------------------------
+model SalesTarget {
+  id        Int      @id @default(autoincrement()) @map("target_id")
+  branchId  Int      @map("branch_id")
+  period    String   // daily | weekly | monthly
+  amount    Float    // هدف الإيراد بالريال
+  startDate DateTime @map("start_date") // بداية فترة الهدف
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("sales_targets")
+  @@index([branchId, period, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// مخزون المواد (مستودع مركزي + أرصدة الفروع + حركة التسليم والاستهلاك)
+// ---------------------------------------------------------------------------
+model InventoryItem {
+  id          Int      @id @default(autoincrement()) @map("item_id")
+  name        String
+  unit        String   @default("liter") // liter | piece | kg
+  warehouseQty Float   @default(0) @map("warehouse_qty")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  balances  BranchInventoryBalance[]
+  movements InventoryMovement[]
+
+  @@map("inventory_items")
+}
+
+model BranchInventoryBalance {
+  id        Int   @id @default(autoincrement()) @map("balance_id")
+  itemId    Int   @map("item_id")
+  branchId  Int   @map("branch_id")
+  quantity  Float @default(0)
+
+  item   InventoryItem @relation(fields: [itemId], references: [id])
+  branch Branch        @relation(fields: [branchId], references: [id])
+
+  @@unique([itemId, branchId])
+  @@map("branch_inventory_balances")
+}
+
+model InventoryMovement {
+  id              Int      @id @default(autoincrement()) @map("movement_id")
+  itemId          Int      @map("item_id")
+  branchId        Int?     @map("branch_id") // null للحركات على المستودع فقط
+  type            String   // warehouse_in | deliver_to_branch | consume | adjust
+  quantity        Float
+  recipientName   String?  @map("recipient_name")
+  notes           String?
+  createdById     Int?     @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  item   InventoryItem @relation(fields: [itemId], references: [id])
+  branch Branch?       @relation(fields: [branchId], references: [id])
+
+  @@map("inventory_movements")
+  @@index([itemId, createdAt])
 }

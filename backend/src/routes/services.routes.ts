@@ -35,4 +35,25 @@ router.post("/", requireAuth, requireRole("manager"), async (req, res) => {
   res.status(201).json(service);
 });
 
+const updateSchema = z.object({
+  serviceName: z.string().min(1).optional(),
+  basePrice: z.number().nonnegative().optional(),
+  suggestedTrigger: z.string().nullable().optional(),
+});
+
+router.patch("/:id", requireAuth, requireRole("manager"), async (req, res) => {
+  const parsed = updateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json(parsed.error.flatten());
+  const service = await prisma.service.update({
+    where: { id: Number(req.params.id) },
+    data: parsed.data,
+  });
+  res.json(service);
+});
+
+router.delete("/:id", requireAuth, requireRole("manager"), async (req, res) => {
+  await prisma.service.delete({ where: { id: Number(req.params.id) } });
+  res.status(204).end();
+});
+
 export default router;
