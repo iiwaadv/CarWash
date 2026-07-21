@@ -126,15 +126,15 @@ export default function BranchDetail() {
                   {t(`overview.status.${b.status}`, b.status)}
                 </span>
               </div>
-              <div className="row">
+              <div className="metric-row">
                 <span>{t("branchDetail.activeJobs")}</span>
                 <strong>{b.activeJobs}</strong>
               </div>
-              <div className="row">
+              <div className="metric-row">
                 <span>{t("overview.pendingDecision")}</span>
                 <strong>{b.pendingIncidents}</strong>
               </div>
-              <div className="row">
+              <div className="metric-row">
                 <span>{t("overview.furiousCustomer")}</span>
                 <strong>{b.unresolvedFuriousFeedback}</strong>
               </div>
